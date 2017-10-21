@@ -3,10 +3,12 @@ package edu.gmu.swe622.fss;
 import java.io.*;
 import java.net.ServerSocket;
 import java.net.Socket;
-import java.util.StringTokenizer;
+import java.nio.file.FileSystems;
+import java.nio.file.Files;
+import java.nio.file.Path;
 
 /**
- * Created by jmr on 10/15/2017.
+ * Server for the File Sharing System.
  */
 public class FSSServer {
 
@@ -23,62 +25,20 @@ public class FSSServer {
         System.setProperty("user.dir", serverDir.getAbsolutePath());
     }
 
-    public void serve(Integer port) throws IOException {
+    public void serve(Integer port) throws IOException, ClassNotFoundException {
         this.serverSocket = new ServerSocket(port);
 
         while (true) {
             this.clientSocket = this.serverSocket.accept();
 
-            BufferedReader clientReader = new BufferedReader(
-                    new InputStreamReader(this.clientSocket.getInputStream()));
-
-            String clientRequest = clientReader.readLine();
-
-            System.out.println("clientRequest = " + clientRequest);
-
-            String[] args = clientRequest.split("\\s");
-            Action action = Action.findByName(args[0]);
-
-            if (action == null) {
+            ObjectInput in = new ObjectInputStream(this.clientSocket.getInputStream());
+            Request request = (Request) in.readObject();
+            if (request == null) {
                 this.writeResponse("error: Invalid action name");
             } else {
-                this.doAction(action, args);
+                this.doAction(request);
             }
             this.clientSocket.close();
-        }
-
-    }
-
-    private void doAction(Action action, String[] args) throws IOException {
-        switch (action) {
-            case RM:
-                this.rm(args);
-                break;
-            case DIR:
-                this.dir(args);
-                break;
-            case DOWNLOAD:
-                this.download(args);
-                break;
-            case MKDIR:
-                this.mkdir(args);
-                break;
-            case RMDIR:
-                this.rmdir(args);
-                break;
-            case UPLOAD:
-                this.upload(args);
-                break;
-            default:
-                break;
-        }
-    }
-
-    private void rm(String[] args) throws IOException {
-        String fileName = args[1];
-        File file = new File(fileName);
-        if (this.validateFile(file)) {
-            file.delete();
         }
     }
 
@@ -101,6 +61,74 @@ public class FSSServer {
         return validated;
     }
 
+    private void doAction(Request request) throws IOException, ClassNotFoundException {
+        switch (request.getAction()) {
+            /*
+            case RM:
+                this.rm(args);
+                break;
+            case DIR:
+                this.dir(args);
+                break;
+            case MKDIR:
+                this.mkdir(args);
+                break;
+            case RMDIR:
+                this.rmdir(args);
+                break;
+                */
+            case UPLOAD:
+                this.upload(request);
+                break;
+            case DOWNLOAD:
+                this.download(request);
+                break;
+            default:
+                break;
+        }
+    }
+
+    private void upload(Request request) throws IOException, ClassNotFoundException {
+        String destination = request.getArguments().get(0);
+        String fileName = request.getArguments().get(1);
+        String size = request.getArguments().get(2);
+        long fileSize = Long.valueOf(size);
+        Path destinationPath = FileSystems.getDefault().getPath(System.getProperty("user.dir"), destination);
+        File destinationDir = destinationPath.toFile();
+
+        if (this.validateDirectory(destinationDir)) {
+            File file = FileSystems.getDefault().getPath(destinationDir.getAbsolutePath(), fileName).toFile();
+            ObjectOutput out = new ObjectOutputStream(this.clientSocket.getOutputStream());
+            out.writeObject(Response.READY_RESPONSE);
+            BufferedOutputStream outStream = new BufferedOutputStream(new FileOutputStream(file));
+            File uploadedFile = (File) new ObjectInputStream(this.clientSocket.getInputStream()).readObject();
+            Utility.write(new BufferedInputStream(new FileInputStream(uploadedFile)), outStream);
+            outStream.close();
+        }
+    }
+
+    private void download(Request request) throws IOException {
+        String fileName = request.getArguments().get(0);
+        Path filePath = FileSystems.getDefault().getPath(fileName);
+        ObjectOutput out = new ObjectOutputStream(this.clientSocket.getOutputStream());
+        if (Files.exists(filePath)) {
+            out.writeObject(Response.READY_RESPONSE);
+            File file = filePath.toFile();
+            out.writeObject(file);
+        } else {
+            out.writeObject(Response.FILE_NOT_FOUND_RESPONSE);
+        }
+    }
+
+    /*
+    private void rm(String[] args) throws IOException {
+        String fileName = args[1];
+        File file = new File(fileName);
+        if (this.validateFile(file)) {
+            file.delete();
+        }
+    }
+
     private void dir(String[] args) throws IOException {
         String dirName = args[1];
         File file = new File(dirName);
@@ -111,16 +139,6 @@ public class FSSServer {
             }
         }
         this.writeResponse(":end");
-    }
-
-    private void download(String[] args) throws IOException {
-        String remoteFile = args[1];
-        File file = this.newFile(remoteFile);
-        if (this.validateFile(file)) {
-            BufferedInputStream inStream = new BufferedInputStream(new FileInputStream(file));
-            Utility.write(inStream, this.clientSocket.getOutputStream());
-            inStream.close();
-        }
     }
 
     private void mkdir(String[] args) throws IOException {
@@ -139,26 +157,7 @@ public class FSSServer {
         }
     }
 
-    private File newFile(String path) {
-        return new File(System.getProperty("user.dir") + File.separator + path);
-    }
-
-    private void upload(String[] args) throws IOException {
-        String localFileName = args[1];
-        String destination = args[2];
-        String start = args[2];
-        File uploadFile = new File(localFileName);
-        String fileName = uploadFile.getName();
-        File dir = this.newFile(destination);
-        if (this.validateDirectory(dir)) {
-            this.writeResponse("ready-for-file");
-            File outFile = new File(dir.getAbsolutePath() + File.separator + fileName);
-            BufferedOutputStream outStream = new BufferedOutputStream(new FileOutputStream(outFile));
-            Utility.write(this.clientSocket.getInputStream(), outStream);
-            outStream.close();
-        }
-    }
-
+*/
     private void writeResponse(String message) throws IOException {
         for (byte b : message.getBytes()) {
             this.clientSocket.getOutputStream().write(b);
