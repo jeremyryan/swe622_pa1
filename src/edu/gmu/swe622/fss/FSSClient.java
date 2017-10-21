@@ -45,59 +45,74 @@ public class FSSClient {
      * @throws ClassNotFoundException
      */
     public void doAction(Action action, String[] args) throws IOException, ClassNotFoundException {
-        switch (action) {
-            /*
-            case RM:
-                this.rm(args[0]);
-                break;
-            case DIR:
-                this.dir(args[0]);
-                break;
-            case MKDIR:
-                this.mkdir(args[0]);
-                break;
-            case RMDIR:
-                this.rmdir(args[0]);
-                break;
-                */
-            case UPLOAD:
-                this.upload(args[0], args[1]);
-                break;
-            case DOWNLOAD:
-                this.download(args[0], args[1]);
-                break;
-            default:
-                break;
+        try {
+
+            switch (action) {
+                case RM:
+                    this.rm(args[0]);
+                    break;
+                case MKDIR:
+                    this.mkdir(args[0]);
+                    break;
+                case DIR:
+                    this.dir(args[0]);
+                    break;
+                case RMDIR:
+                    this.rmdir(args[0]);
+                    break;
+                case UPLOAD:
+                    this.upload(args[0], args[1]);
+                    break;
+                case DOWNLOAD:
+                    this.download(args[0], args[1]);
+                    break;
+                default:
+                    break;
+            }
+        } catch (IOException exp) {
+            System.out.println("Action could not be completed: " + exp.getMessage());
+        } finally {
+            try {
+                this.objectIn.close();
+                this.objectOut.close();
+            } catch (IOException exp) {
+                exp.printStackTrace();
+            }
         }
-        this.sock.close();
     }
-/*
+
     private void rm(String fileName) throws IOException, ClassNotFoundException {
         Request request = new Request(Action.RM, fileName);
         Response response = this.send(request);
+        if (! response.isValid()) {
+            this.reportErrorAndExit("File could not be deleted: " + response.getErrorMessage());
+        }
+    }
+
+    private void mkdir(String dirName) throws IOException, ClassNotFoundException {
+        Request request = new Request(Action.MKDIR, dirName);
+        Response response = this.send(request);
+        if (! response.isValid()) {
+            this.reportErrorAndExit("Directory could not be created: " + response.getErrorMessage());
+        }
     }
 
     private void dir(String fileName) throws IOException, ClassNotFoundException {
         Request request = new Request(Action.DIR, fileName);
         Response response = this.send(request);
+        if (! response.isValid()) {
+            this.reportErrorAndExit("Directory could not be listed: " + response.getErrorMessage());
+        }
     }
 
 
-    private void mkdir(String dirName) throws IOException, ClassNotFoundException {
-        Request request = new Request(Action.MKDIR, dirName);
-        this.writeRequest("mkdir " + dirName);
+    private void rmdir(String dirName) throws IOException, ClassNotFoundException {
+        Request request = new Request(Action.RMDIR, dirName);
         Response response = this.send(request);
         if (! response.isValid()) {
-            System.out.println("Directory could not be created: " + response.getMessage());
-            System.exit(1);
+            this.reportErrorAndExit("Directory could not be removed: " + response.getErrorMessage());
         }
-
     }
-
-    private void rmdir(String dirName) throws IOException {
-        String response = this.writeRequest(Action.RMDIR, dirName);
-    }
-*/
 
     /**
      *
@@ -109,17 +124,13 @@ public class FSSClient {
     private void upload(String localFilePath, String remoteDestination) throws IOException, ClassNotFoundException {
         File file = new File(localFilePath);
         if (! file.exists()) {
-            System.out.println("File could not be found: " + localFilePath);
-            this.sock.close();
-            System.exit(1);
+            this.reportErrorAndExit("File could not be found: " + localFilePath);
         }
 
         Request request = new Request(Action.UPLOAD, file, remoteDestination, file.getName(), file.length() + "");
-
         Response response = this.send(request);
         if (! response.isValid()) {
-            System.out.println("File could not be uploaded: " + response.getErrorMessage());
-            System.exit(1);
+            this.reportErrorAndExit("File could not be uploaded: " + response.getErrorMessage());
         }
     }
 
@@ -134,8 +145,7 @@ public class FSSClient {
         Path destinationPath = FileSystems.getDefault().getPath(destination);
         File destinationDir = new File(destination);
         if (! Files.exists(destinationPath)) {
-            System.out.println("Destination directory could not be found.");
-            System.exit(1);
+            this.reportErrorAndExit("Destination directory could not be found.");
         }
 
         Request request = new Request(Action.DOWNLOAD, remoteFile);
@@ -144,8 +154,7 @@ public class FSSClient {
 
         Response response = (Response) this.objectIn.readObject();
         if (! response.isValid()) {
-            System.out.println("File could not be downloaded: ");
-            System.exit(1);
+            this.reportErrorAndExit("File could not be downloaded: " + response.getErrorMessage());
         } else {
             File downloadedFile = response.getFile();
             System.out.println("file length = " + downloadedFile.length());
@@ -156,21 +165,6 @@ public class FSSClient {
         }
     }
 
-    private String writeRequest(Action action, String... args) throws IOException {
-        String request = null;
-        switch (action.getNumArgs()) {
-            case 1:
-                request = String.format("%s %s", action.getName(), args[0]);
-                break;
-            case 2:
-                request = String.format("%s %s %s", action.getName(), args[0], args[1]);
-                break;
-        }
-
-        this.writeRequest(request);
-        return this.readResponse();
-    }
-
     /**
      *
      * @param request
@@ -179,23 +173,14 @@ public class FSSClient {
      * @throws ClassNotFoundException
      */
     private Response send(Request request) throws IOException, ClassNotFoundException {
-        ObjectOutput out = new ObjectOutputStream(this.sock.getOutputStream());
-        out.writeObject(request);
-        out.flush();
-        ObjectInput in = new ObjectInputStream(this.sock.getInputStream());
-        return (Response) in.readObject();
+        this.objectOut.writeObject(request);
+        this.objectOut.flush();
+        return (Response) this.objectIn.readObject();
     }
 
-    private void writeRequest(String message) throws IOException {
-        DataOutputStream outStream = new DataOutputStream(this.sock.getOutputStream());
-        outStream.writeBytes(message);
-        outStream.writeByte('\n');
-        outStream.flush();
-    }
-
-    private String readResponse() throws IOException {
-        BufferedReader reader = new BufferedReader(new InputStreamReader(this.sock.getInputStream()));
-        return reader.readLine();
+    private void reportErrorAndExit(String message) {
+        System.out.println(message);
+        System.exit(1);
     }
 }
 

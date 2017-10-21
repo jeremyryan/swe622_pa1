@@ -23,41 +23,48 @@ public class RequestHandler extends Thread {
     public void run() {
         try {
             this.handle();
-            this.objectIn.close();
-            this.objectOut.close();
         } catch (IOException e) {
             e.printStackTrace();
-        } catch (ClassNotFoundException e) {
-            e.printStackTrace();
+        } finally {
+            try {
+                this.objectIn.close();
+                this.objectOut.close();
+            } catch (IOException exp) {
+                exp.printStackTrace();
+            }
         }
     }
 
-    private void handle() throws IOException, ClassNotFoundException {
-        Request request = (Request) this.objectIn.readObject();
-        switch (request.getAction()) {
-            case RM:
-                this.rm(request);
+    private void handle() throws IOException {
+        try {
+            Request request = (Request) this.objectIn.readObject();
+            switch (request.getAction()) {
+                case RM:
+                    this.rm(request);
+                    break;
+                case MKDIR:
+                    this.mkdir(request);
+                    break;
+                case DIR:
+                    this.dir(request);
+                    break;
+                case RMDIR:
+                    this.rmdir(request);
                 break;
-            /*
-            case DIR:
-                this.dir(args);
-                break;
-            case MKDIR:
-                this.mkdir(args);
-                break;
-            case RMDIR:
-                this.rmdir(args);
-                break;
-                */
-            case UPLOAD:
-                this.upload(request);
-                break;
-            case DOWNLOAD:
-                this.download(request);
-                break;
-            default:
-                // just nothing
-                break;
+                case UPLOAD:
+                    this.upload(request);
+                    break;
+                case DOWNLOAD:
+                    this.download(request);
+                    break;
+                default:
+                    // oh just nothing
+                    break;
+            }
+        } catch (IOException exp) {
+            this.writeResponse(new Response("Action could not be completed: " + exp.getMessage()));
+        } catch (ClassNotFoundException exp) {
+            this.writeResponse(new Response("Action could not be completed: " + exp.getMessage()));
         }
     }
 
@@ -73,7 +80,7 @@ public class RequestHandler extends Thread {
             Files.deleteIfExists(filePath);
             this.writeResponse(Response.SUCCESSFUL);
         } else {
-            this.writeResponse(new Response("File could not be deleted"));
+            this.writeResponse(Response.FILE_NOT_FOUND);
         }
     }
 
@@ -86,10 +93,11 @@ public class RequestHandler extends Thread {
         Path destinationPath = this.getPath(destination);
         File destinationDir = destinationPath.toFile();
 
-        if (this.validateDirectory(destinationDir)) {
+        if (Files.exists(destinationPath)) {
             File file = FileSystems.getDefault().getPath(destinationDir.getAbsolutePath(), fileName).toFile();
             BufferedOutputStream outStream = new BufferedOutputStream(new FileOutputStream(file));
             File uploadedFile = request.getFile();
+            System.out.println("server file len = " + uploadedFile.length());
             Utility.write(new BufferedInputStream(new FileInputStream(uploadedFile)), outStream);
             outStream.close();
             this.writeResponse(Response.SUCCESSFUL);
@@ -111,53 +119,36 @@ public class RequestHandler extends Thread {
         }
     }
 
-    /*
-    private void dir(String[] args) throws IOException {
-        String dirName = args[1];
-        File file = new File(dirName);
-        this.writeResponse(":begin");
-        if (this.validateDirectory(file)) {
-            for (String fileName : file.list()) {
-                this.writeResponse(fileName);
-            }
-        }
-        this.writeResponse(":end");
-    }
-
-    private void mkdir(String[] args) throws IOException {
-        String dirName = args[1];
-        File newDir = this.newFile(dirName);
-        if (! newDir.exists()) {
-            newDir.mkdir();
+    private void mkdir(Request request) throws IOException {
+        String dirName = request.getArguments().get(0);
+        Path newDirPath = this.getPath(dirName);
+        if (! Files.exists(newDirPath)) {
+            Files.createDirectory(newDirPath);
+            this.writeResponse(Response.SUCCESSFUL);
+        } else {
+            this.writeResponse(new Response("Directory already exists"));
         }
     }
 
-    private void rmdir(String[] args) throws IOException {
-        String dirName = args[1];
-        File file = new File(dirName);
-        if (this.validateDirectory(file)) {
-            file.delete();
+    private void dir(Request request) throws IOException {
+        String dirName = request.getArguments().get(0);
+        Path dirPath = this.getPath(dirName);
+        if (Files.exists(dirPath)) {
+            Files.list(dirPath).forEach((Path path) -> System.out.println(path));
+        } else {
+           this.writeResponse(new Response("Directory was not found"));
         }
     }
 
-*/
-    private boolean validateFile(File file) throws IOException {
-        boolean validated = true;
-        if (! file.exists()) {
-            //this.writeResponse("error File could not be found");
-            validated = false;
+    private void rmdir(Request request) throws IOException {
+        String dirName = request.getArguments().get(0);
+        Path dirPath = this.getPath(dirName);
+        if (Files.exists(dirPath)) {
+            Files.delete(dirPath);
+            this.writeResponse(Response.SUCCESSFUL);
+        } else {
+            this.writeResponse(new Response("Directory does not exist"));
         }
-        return validated;
-    }
-
-    private boolean validateDirectory(File file) throws IOException {
-        boolean validated = this.validateFile(file);
-        if (! file.isDirectory()) {
-            //this.writeResponse("error Specified file is not a directory");
-            validated = false;
-        }
-
-        return validated;
     }
 
     private void writeResponse(Response response) throws IOException {

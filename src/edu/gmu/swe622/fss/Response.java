@@ -10,7 +10,7 @@ public class Response implements Serializable {
 
     private static final long serialVersionUID = 1L;
 
-    public static final Response FILE_NOT_FOUND = new Response("File could not be found");
+    public static final Response FILE_NOT_FOUND = new Response("File was not found");
     public static final Response SUCCESSFUL = new Response(true);
 
     private boolean valid = true;
