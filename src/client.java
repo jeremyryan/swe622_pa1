@@ -24,7 +24,7 @@ public class client {
         String actionName = args[0];
         Action action = Action.findByName(actionName);
 
-        if (action == null || action.getNumArgs() < args.length-1) {
+        if (action == null || args.length-1 < action.getNumArgs()) {
             printUsage();
             System.exit(0);
         }

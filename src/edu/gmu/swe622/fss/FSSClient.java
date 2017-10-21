@@ -10,7 +10,13 @@ import java.nio.file.*;
 public class FSSClient {
 
     private Socket sock;
+    private ObjectInput objectIn;
+    private ObjectOutput objectOut;
 
+    /**
+     *
+     * @throws IOException
+     */
     public FSSClient() throws IOException {
         String serverVar = System.getenv("PA1_SERVER");
         if (serverVar == null) {
@@ -27,8 +33,17 @@ public class FSSClient {
         }
         Integer port = Integer.valueOf(portParam);
         this.sock = new Socket(hostName, port);
+        this.objectIn = new ObjectInputStream(this.sock.getInputStream());
+        this.objectOut = new ObjectOutputStream(this.sock.getOutputStream());
     }
 
+    /**
+     *
+     * @param action
+     * @param args
+     * @throws IOException
+     * @throws ClassNotFoundException
+     */
     public void doAction(Action action, String[] args) throws IOException, ClassNotFoundException {
         switch (action) {
             /*
@@ -83,6 +98,14 @@ public class FSSClient {
         String response = this.writeRequest(Action.RMDIR, dirName);
     }
 */
+
+    /**
+     *
+     * @param localFilePath
+     * @param remoteDestination
+     * @throws IOException
+     * @throws ClassNotFoundException
+     */
     private void upload(String localFilePath, String remoteDestination) throws IOException, ClassNotFoundException {
         File file = new File(localFilePath);
         if (! file.exists()) {
@@ -91,20 +114,22 @@ public class FSSClient {
             System.exit(1);
         }
 
-        Request request = new Request(Action.UPLOAD, remoteDestination, file.getName(), file.length() + "");
+        Request request = new Request(Action.UPLOAD, file, remoteDestination, file.getName(), file.length() + "");
+
         Response response = this.send(request);
         if (! response.isValid()) {
             System.out.println("File could not be uploaded: " + response.getErrorMessage());
             System.exit(1);
-        } else if ("ready".equals(response.getMessage())) {
-            ObjectOutput out = new ObjectOutputStream(this.sock.getOutputStream());
-            out.writeObject(file);
-        } else {
-            System.out.println("Unrecognized response: " + response.getMessage());
-            System.exit(1);
         }
     }
 
+    /**
+     *
+     * @param remoteFile
+     * @param destination
+     * @throws IOException
+     * @throws ClassNotFoundException
+     */
     private void download(String remoteFile, String destination) throws IOException, ClassNotFoundException {
         Path destinationPath = FileSystems.getDefault().getPath(destination);
         File destinationDir = new File(destination);
@@ -112,20 +137,22 @@ public class FSSClient {
             System.out.println("Destination directory could not be found.");
             System.exit(1);
         }
+
         Request request = new Request(Action.DOWNLOAD, remoteFile);
-        Response response = this.send(request);
-        System.out.println("response 1 = " + response.getMessage());
-        if ("error".equals(response.getMessage())) {
+        this.objectOut.writeObject(request);
+        this.objectOut.flush();
+
+        Response response = (Response) this.objectIn.readObject();
+        if (! response.isValid()) {
             System.out.println("File could not be downloaded: ");
             System.exit(1);
-        }
-
-        if ("ready".equals(response.getMessage())) {
-            File file = (File) new ObjectInputStream(this.sock.getInputStream()).readObject();
-            BufferedOutputStream out = new BufferedOutputStream(new FileOutputStream(file));
-            Files.copy(destinationPath, out);
-            out.flush();
-            out.close();
+        } else {
+            File downloadedFile = response.getFile();
+            System.out.println("file length = " + downloadedFile.length());
+            Path filePath = FileSystems.getDefault().getPath(destinationPath.toString(), downloadedFile.getName());
+            BufferedOutputStream fileOut = new BufferedOutputStream(new FileOutputStream(filePath.toFile()));
+            Utility.write(new BufferedInputStream(new FileInputStream(downloadedFile)), fileOut);
+            fileOut.close();
         }
     }
 
@@ -144,6 +171,13 @@ public class FSSClient {
         return this.readResponse();
     }
 
+    /**
+     *
+     * @param request
+     * @return
+     * @throws IOException
+     * @throws ClassNotFoundException
+     */
     private Response send(Request request) throws IOException, ClassNotFoundException {
         ObjectOutput out = new ObjectOutputStream(this.sock.getOutputStream());
         out.writeObject(request);

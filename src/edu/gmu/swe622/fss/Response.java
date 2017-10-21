@@ -1,5 +1,6 @@
 package edu.gmu.swe622.fss;
 
+import java.io.File;
 import java.io.Serializable;
 
 /**
@@ -9,27 +10,26 @@ public class Response implements Serializable {
 
     private static final long serialVersionUID = 1L;
 
-    public static final Response READY_RESPONSE = new Response("ready");
-    public static final Response FILE_NOT_FOUND_RESPONSE = new Response("error", false, "File could not be found");
+    public static final Response FILE_NOT_FOUND = new Response("File could not be found");
+    public static final Response SUCCESSFUL = new Response(true);
 
     private boolean valid = true;
-    private String message;
     private String errorMessage;
+    private File file;
 
-    public Response(String message) {
-        this.message = message;
-    }
-
-    public Response(String message, boolean valid) {
-        this.message = message;
+    public Response(boolean valid) {
         this.valid = valid;
     }
 
-    public Response(String message, boolean valid, String errorMessage) {
-        this.message = message;
-        this.valid = valid;
+    public Response(File file) {
+        this.file = file;
+    }
+
+    public Response(String errorMessage) {
+        this.valid = false;
         this.errorMessage = errorMessage;
     }
+
 
     public boolean isValid() {
         return this.valid;
@@ -39,19 +39,19 @@ public class Response implements Serializable {
         this.valid = valid;
     }
 
-    public String getMessage() {
-        return this.message;
-    }
-
-    public void setMessage(String message) {
-        this.message = message;
-    }
-
     public String getErrorMessage() {
         return this.errorMessage;
     }
 
     public void setErrorMessage(String errorMessage) {
         this.errorMessage = errorMessage;
+    }
+
+    public File getFile() {
+        return file;
+    }
+
+    public void setFile(File file) {
+        this.file = file;
     }
 }

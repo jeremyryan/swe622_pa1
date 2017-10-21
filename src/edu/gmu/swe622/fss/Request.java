@@ -1,5 +1,6 @@
 package edu.gmu.swe622.fss;
 
+import java.io.File;
 import java.io.Serializable;
 import java.util.Arrays;
 import java.util.List;
@@ -13,6 +14,7 @@ public class Request implements Serializable {
 
     private Action action;
     private List<String> arguments;
+    private File file;
 
     public Action getAction() {
         return this.action;
@@ -35,8 +37,22 @@ public class Request implements Serializable {
         this.arguments = Arrays.asList(arguments);
     }
 
+    public Request(Action action, File file, String... arguments) {
+        this.action = action;
+        this.file = file;
+        this.arguments = Arrays.asList(arguments);
+    }
+
     public Request(Action action, List<String> arguments) {
         this.action = action;
         this.arguments = arguments;
+    }
+
+    public File getFile() {
+        return file;
+    }
+
+    public void setFile(File file) {
+        this.file = file;
     }
 }
