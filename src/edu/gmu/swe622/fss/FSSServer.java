@@ -31,34 +31,4 @@ public class FSSServer {
         }
     }
 
-    /*
-    private void dir(String[] args) throws IOException {
-        String dirName = args[1];
-        File file = new File(dirName);
-        this.writeResponse(":begin");
-        if (this.validateDirectory(file)) {
-            for (String fileName : file.list()) {
-                this.writeResponse(fileName);
-            }
-        }
-        this.writeResponse(":end");
-    }
-
-    private void mkdir(String[] args) throws IOException {
-        String dirName = args[1];
-        File newDir = this.newFile(dirName);
-        if (! newDir.exists()) {
-            newDir.mkdir();
-        }
-    }
-
-    private void rmdir(String[] args) throws IOException {
-        String dirName = args[1];
-        File file = new File(dirName);
-        if (this.validateDirectory(file)) {
-            file.delete();
-        }
-    }
-
-*/
 }
