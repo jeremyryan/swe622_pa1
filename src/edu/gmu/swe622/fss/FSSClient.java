@@ -81,6 +81,12 @@ public class FSSClient {
         }
     }
 
+    /**
+     *
+     * @param fileName
+     * @throws IOException
+     * @throws ClassNotFoundException
+     */
     private void rm(String fileName) throws IOException, ClassNotFoundException {
         Request request = new Request(Action.RM, fileName);
         Response response = this.send(request);
@@ -89,6 +95,12 @@ public class FSSClient {
         }
     }
 
+    /**
+     *
+     * @param dirName
+     * @throws IOException
+     * @throws ClassNotFoundException
+     */
     private void mkdir(String dirName) throws IOException, ClassNotFoundException {
         Request request = new Request(Action.MKDIR, dirName);
         Response response = this.send(request);
@@ -97,6 +109,12 @@ public class FSSClient {
         }
     }
 
+    /**
+     *
+     * @param fileName
+     * @throws IOException
+     * @throws ClassNotFoundException
+     */
     private void dir(String fileName) throws IOException, ClassNotFoundException {
         Request request = new Request(Action.DIR, fileName);
         Response response = this.send(request);
@@ -105,7 +123,12 @@ public class FSSClient {
         }
     }
 
-
+    /**
+     *
+     * @param dirName
+     * @throws IOException
+     * @throws ClassNotFoundException
+     */
     private void rmdir(String dirName) throws IOException, ClassNotFoundException {
         Request request = new Request(Action.RMDIR, dirName);
         Response response = this.send(request);
@@ -166,9 +189,9 @@ public class FSSClient {
     }
 
     /**
-     *
-     * @param request
-     * @return
+     * Sends the request to the server and returns the server response.
+     * @param request  the request to send to the server
+     * @return  the server response
      * @throws IOException
      * @throws ClassNotFoundException
      */
@@ -178,8 +201,12 @@ public class FSSClient {
         return (Response) this.objectIn.readObject();
     }
 
+    /**
+     * Prints the message to stderr and exits with a return code of 1.
+     * @param message  the error message to print to stderr
+     */
     private void reportErrorAndExit(String message) {
-        System.out.println(message);
+        System.err.println(message);
         System.exit(1);
     }
 }

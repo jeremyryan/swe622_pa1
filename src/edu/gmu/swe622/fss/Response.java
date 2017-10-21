@@ -1,35 +1,35 @@
 package edu.gmu.swe622.fss;
 
 import java.io.File;
-import java.io.Serializable;
+import java.util.Arrays;
 
 /**
- * Created by jmr on 10/19/2017.
+ * Class representing a response from the FSS server.
  */
-public class Response implements Serializable {
-
-    private static final long serialVersionUID = 1L;
+public class Response extends Message {
 
     public static final Response FILE_NOT_FOUND = new Response("File was not found");
-    public static final Response SUCCESSFUL = new Response(true);
+    public static final Response DIRECTORY_NOT_FOUND = new Response("Directory was not found");
+    public static final Response SUCCESSFUL = new Response();
 
     private boolean valid = true;
     private String errorMessage;
-    private File file;
 
-    public Response(boolean valid) {
-        this.valid = valid;
+    public Response() {
     }
 
     public Response(File file) {
-        this.file = file;
+        super(file);
+    }
+
+    public Response(String... values) {
+        super(Arrays.asList(values));
     }
 
     public Response(String errorMessage) {
         this.valid = false;
         this.errorMessage = errorMessage;
     }
-
 
     public boolean isValid() {
         return this.valid;
@@ -47,11 +47,4 @@ public class Response implements Serializable {
         this.errorMessage = errorMessage;
     }
 
-    public File getFile() {
-        return file;
-    }
-
-    public void setFile(File file) {
-        this.file = file;
-    }
 }

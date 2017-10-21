@@ -74,7 +74,7 @@ public class RequestHandler extends Thread {
     }
 
     private void rm(Request request) throws IOException {
-        String fileName = request.getArguments().get(0);
+        String fileName = request.getValues().get(0);
         Path filePath = this.getPath(fileName);
         if (Files.exists(filePath)) {
             Files.deleteIfExists(filePath);
@@ -85,8 +85,8 @@ public class RequestHandler extends Thread {
     }
 
     private void upload(Request request) throws IOException, ClassNotFoundException {
-        String destination = request.getArguments().get(0);
-        String fileName = request.getArguments().get(1);
+        String destination = request.getValues().get(0);
+        String fileName = request.getValues().get(1);
         //String size = request.getArguments().get(2);
         //long fileSize = Long.valueOf(size);
 
@@ -107,7 +107,7 @@ public class RequestHandler extends Thread {
     }
 
     private void download(Request request) throws IOException {
-        String fileName = request.getArguments().get(0);
+        String fileName = request.getValues().get(0);
         Path filePath = this.getPath(fileName);
 
         if (Files.exists(filePath)) {
@@ -120,7 +120,7 @@ public class RequestHandler extends Thread {
     }
 
     private void mkdir(Request request) throws IOException {
-        String dirName = request.getArguments().get(0);
+        String dirName = request.getValues().get(0);
         Path newDirPath = this.getPath(dirName);
         if (! Files.exists(newDirPath)) {
             Files.createDirectory(newDirPath);
@@ -131,23 +131,23 @@ public class RequestHandler extends Thread {
     }
 
     private void dir(Request request) throws IOException {
-        String dirName = request.getArguments().get(0);
+        String dirName = request.getValues().get(0);
         Path dirPath = this.getPath(dirName);
         if (Files.exists(dirPath)) {
             Files.list(dirPath).forEach((Path path) -> System.out.println(path));
         } else {
-           this.writeResponse(new Response("Directory was not found"));
+           this.writeResponse(Response.DIRECTORY_NOT_FOUND);
         }
     }
 
     private void rmdir(Request request) throws IOException {
-        String dirName = request.getArguments().get(0);
+        String dirName = request.getValues().get(0);
         Path dirPath = this.getPath(dirName);
         if (Files.exists(dirPath)) {
             Files.delete(dirPath);
             this.writeResponse(Response.SUCCESSFUL);
         } else {
-            this.writeResponse(new Response("Directory does not exist"));
+            this.writeResponse(Response.DIRECTORY_NOT_FOUND);
         }
     }
 
