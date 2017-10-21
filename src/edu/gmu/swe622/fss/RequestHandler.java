@@ -62,11 +62,16 @@ public class RequestHandler extends Thread {
     }
 
 
+    private Path getPath(String fileName) {
+        return FileSystems.getDefault().getPath(System.getProperty("user.dir"), fileName);
+    }
+
     private void rm(Request request) throws IOException {
         String fileName = request.getArguments().get(0);
-        File file = new File(fileName);
-        if (this.validateFile(file)) {
-            file.delete();
+        Path filePath = this.getPath(fileName);
+        if (Files.exists(filePath)) {
+            Files.deleteIfExists(filePath);
+            this.writeResponse(Response.SUCCESSFUL);
         } else {
             this.writeResponse(new Response("File could not be deleted"));
         }
@@ -78,7 +83,7 @@ public class RequestHandler extends Thread {
         //String size = request.getArguments().get(2);
         //long fileSize = Long.valueOf(size);
 
-        Path destinationPath = FileSystems.getDefault().getPath(System.getProperty("user.dir"), destination);
+        Path destinationPath = this.getPath(destination);
         File destinationDir = destinationPath.toFile();
 
         if (this.validateDirectory(destinationDir)) {
@@ -95,7 +100,7 @@ public class RequestHandler extends Thread {
 
     private void download(Request request) throws IOException {
         String fileName = request.getArguments().get(0);
-        Path filePath = FileSystems.getDefault().getPath(System.getProperty("user.dir"), fileName);
+        Path filePath = this.getPath(fileName);
 
         if (Files.exists(filePath)) {
             File file = filePath.toFile();
@@ -106,6 +111,36 @@ public class RequestHandler extends Thread {
         }
     }
 
+    /*
+    private void dir(String[] args) throws IOException {
+        String dirName = args[1];
+        File file = new File(dirName);
+        this.writeResponse(":begin");
+        if (this.validateDirectory(file)) {
+            for (String fileName : file.list()) {
+                this.writeResponse(fileName);
+            }
+        }
+        this.writeResponse(":end");
+    }
+
+    private void mkdir(String[] args) throws IOException {
+        String dirName = args[1];
+        File newDir = this.newFile(dirName);
+        if (! newDir.exists()) {
+            newDir.mkdir();
+        }
+    }
+
+    private void rmdir(String[] args) throws IOException {
+        String dirName = args[1];
+        File file = new File(dirName);
+        if (this.validateDirectory(file)) {
+            file.delete();
+        }
+    }
+
+*/
     private boolean validateFile(File file) throws IOException {
         boolean validated = true;
         if (! file.exists()) {
