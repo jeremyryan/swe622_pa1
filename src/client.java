@@ -15,7 +15,7 @@ public class client {
         ).forEach(System.out::println);
     }
 
-    public static void main(String[] args) throws IOException {
+    public static void main(String[] args) throws IOException, ClassNotFoundException {
         if (args.length == 0) {
             printUsage();
             System.exit(0);
