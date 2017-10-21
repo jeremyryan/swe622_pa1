@@ -1,4 +1,3 @@
-import edu.gmu.swe622.fss.Action;
 import edu.gmu.swe622.fss.FSSServer;
 
 import java.io.IOException;
@@ -9,7 +8,7 @@ import java.util.stream.Stream;
  */
 public class server {
 
-    public static void main(String[] args) throws IOException {
+    public static void main(String[] args) throws IOException, ClassNotFoundException {
         if (args.length == 0) {
             printUsage();
             System.exit(1);
