@@ -2,6 +2,7 @@ package edu.gmu.swe622.fss;
 
 import java.io.File;
 import java.util.Arrays;
+import java.util.List;
 
 /**
  * Class representing a response from the FSS server.
@@ -20,6 +21,10 @@ public class Response extends Message {
 
     public Response(File file) {
         super(file);
+    }
+
+    public Response(List<String> values) {
+        super(values);
     }
 
     public Response(String... values) {

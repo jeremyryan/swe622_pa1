@@ -118,7 +118,9 @@ public class FSSClient {
     private void dir(String fileName) throws IOException, ClassNotFoundException {
         Request request = new Request(Action.DIR, fileName);
         Response response = this.send(request);
-        if (! response.isValid()) {
+        if (response.isValid()) {
+            response.getValues().stream().forEach((s) -> System.out.println(s));
+        } else {
             this.reportErrorAndExit("Directory could not be listed: " + response.getErrorMessage());
         }
     }

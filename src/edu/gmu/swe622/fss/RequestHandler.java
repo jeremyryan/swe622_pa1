@@ -5,6 +5,8 @@ import java.net.Socket;
 import java.nio.file.FileSystems;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.ArrayList;
+import java.util.List;
 
 /**
  * Created by jmr on 10/21/17.
@@ -97,7 +99,6 @@ public class RequestHandler extends Thread {
             File file = FileSystems.getDefault().getPath(destinationDir.getAbsolutePath(), fileName).toFile();
             BufferedOutputStream outStream = new BufferedOutputStream(new FileOutputStream(file));
             File uploadedFile = request.getFile();
-            System.out.println("server file len = " + uploadedFile.length());
             Utility.write(new BufferedInputStream(new FileInputStream(uploadedFile)), outStream);
             outStream.close();
             this.writeResponse(Response.SUCCESSFUL);
@@ -134,7 +135,10 @@ public class RequestHandler extends Thread {
         String dirName = request.getValues().get(0);
         Path dirPath = this.getPath(dirName);
         if (Files.exists(dirPath)) {
-            Files.list(dirPath).forEach((Path path) -> System.out.println(path));
+            List<String> fileNames = new ArrayList<>();
+            Files.list(dirPath).forEach((path) -> fileNames.add(path.getFileName().toString()));
+            Response response = new Response(fileNames);
+            this.writeResponse(response);
         } else {
            this.writeResponse(Response.DIRECTORY_NOT_FOUND);
         }
