@@ -5,7 +5,7 @@ import java.net.Socket;
 import java.nio.file.*;
 
 /**
- * Created by jmr on 10/15/2017.
+ * Implements the client for the File Sharing System.
  */
 public class FSSClient {
 
@@ -14,8 +14,10 @@ public class FSSClient {
     private ObjectOutput objectOut;
 
     /**
-     *
+     * Constructor. Requires that the PA1_SERVER environment variable be set and to have the format
+     * hostname:port, from which it gets the information to set up a connection to the FSS server.
      * @throws IOException
+     * @throws IllegalStateException  if the PA1_SERVER environment variable is not set.
      */
     public FSSClient() throws IOException {
         String serverVar = System.getenv("PA1_SERVER");
@@ -38,7 +40,7 @@ public class FSSClient {
     }
 
     /**
-     *
+     * Dispatches user input to client request handlers.
      * @param action
      * @param args
      * @throws IOException
@@ -46,7 +48,6 @@ public class FSSClient {
      */
     public void doAction(Action action, String[] args) throws IOException, ClassNotFoundException {
         try {
-
             switch (action) {
                 case RM:
                     this.rm(args[0]);
@@ -82,8 +83,8 @@ public class FSSClient {
     }
 
     /**
-     *
-     * @param fileName
+     * Sends a request to remove the file specified by fileName from the server.
+     * @param fileName the name of the file to remove
      * @throws IOException
      * @throws ClassNotFoundException
      */
@@ -96,8 +97,8 @@ public class FSSClient {
     }
 
     /**
-     *
-     * @param dirName
+     * Sends a request to create a directory named by dirName to the server.
+     * @param dirName the name of the directory to create
      * @throws IOException
      * @throws ClassNotFoundException
      */
@@ -110,13 +111,14 @@ public class FSSClient {
     }
 
     /**
-     *
-     * @param fileName
+     * Sends a request to list the contents of a directory specified by dirName from the server.
+     * The returned list of files and directories is then printed on stdout.
+     * @param dirName the name of the directory on the server to list
      * @throws IOException
      * @throws ClassNotFoundException
      */
-    private void dir(String fileName) throws IOException, ClassNotFoundException {
-        Request request = new Request(Action.DIR, fileName);
+    private void dir(String dirName) throws IOException, ClassNotFoundException {
+        Request request = new Request(Action.DIR, dirName);
         Response response = this.send(request);
         if (response.isValid()) {
             response.getValues().stream().forEach((s) -> System.out.println(s));
@@ -126,8 +128,8 @@ public class FSSClient {
     }
 
     /**
-     *
-     * @param dirName
+     * Sends a request to remove a directory specified by dirName from the server.
+     * @param dirName  the name of the directory to delete.
      * @throws IOException
      * @throws ClassNotFoundException
      */
@@ -140,13 +142,16 @@ public class FSSClient {
     }
 
     /**
-     *
-     * @param localFilePath
-     * @param remoteDestination
+     * Sends a request to upload a file specified by localFilePath to the remote directory specified by
+     * remoteDestination.
+     * @param localFilePath path of the file to upload to the server
+     * @param remoteDestination the name of the remote directory where the file should be created on
+     *                          the server
      * @throws IOException
      * @throws ClassNotFoundException
      */
-    private void upload(String localFilePath, String remoteDestination) throws IOException, ClassNotFoundException {
+    private void upload(String localFilePath, String remoteDestination)
+            throws IOException, ClassNotFoundException {
         File file = new File(localFilePath);
         if (! file.exists()) {
             this.reportErrorAndExit("File could not be found: " + localFilePath);
@@ -160,9 +165,10 @@ public class FSSClient {
     }
 
     /**
-     *
-     * @param remoteFile
-     * @param destination
+     * Sends a request to download a file, specified by remoteFile, from the server to the local
+     * directory specified by destination.
+     * @param remoteFile  the file to download from the server
+     * @param destination the destination directory for the downloaded file
      * @throws IOException
      * @throws ClassNotFoundException
      */
