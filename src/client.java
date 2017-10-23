@@ -5,7 +5,7 @@ import java.io.IOException;
 import java.util.stream.Stream;
 
 /**
- * Created by jmr on 10/16/2017.
+ * Class with a main method to invoke from the command line in order to make client requests.
  */
 public class client {
 

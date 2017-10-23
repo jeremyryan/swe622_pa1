@@ -4,11 +4,16 @@ import java.io.IOException;
 import java.util.stream.Stream;
 
 /**
- * Created by jmr on 10/16/2017.
+ * Class with a main method to invoke from the command line in order to start the FSS server.
  */
 public class server {
 
-    public static void main(String[] args) throws IOException, ClassNotFoundException {
+    /**
+     * Starts the server listening on the port specified by the command line arguments.
+     * @param args  the command line arguments
+     * @throws IOException
+     */
+    public static void main(String[] args) throws IOException {
         if (args.length == 0) {
             printUsage();
             System.exit(1);
@@ -32,6 +37,9 @@ public class server {
         new FSSServer().serve(port);
     }
 
+    /**
+     * Prints usage information to stdout.
+     */
     private static void printUsage() {
         Stream.of("Usage:", "start <portnumber>").forEach(System.out::println);
     }

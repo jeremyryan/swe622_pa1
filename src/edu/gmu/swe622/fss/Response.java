@@ -16,38 +16,73 @@ public class Response extends Message {
     private boolean valid = true;
     private String errorMessage;
 
+    /**
+     *
+     */
     public Response() {
     }
 
+    /**
+     *
+     * @param file
+     */
     public Response(File file) {
         super(file);
     }
 
+    /**
+     *
+     * @param values
+     */
     public Response(List<String> values) {
         super(values);
     }
 
+    /**
+     *
+     * @param values
+     */
     public Response(String... values) {
         super(Arrays.asList(values));
     }
 
+    /**
+     *
+     * @param errorMessage
+     */
     public Response(String errorMessage) {
         this.valid = false;
         this.errorMessage = errorMessage;
     }
 
+    /**
+     *
+     * @return
+     */
     public boolean isValid() {
         return this.valid;
     }
 
+    /**
+     *
+     * @param valid
+     */
     public void setValid(boolean valid) {
         this.valid = valid;
     }
 
+    /**
+     *
+     * @return
+     */
     public String getErrorMessage() {
         return this.errorMessage;
     }
 
+    /**
+     *
+     * @param errorMessage
+     */
     public void setErrorMessage(String errorMessage) {
         this.errorMessage = errorMessage;
     }

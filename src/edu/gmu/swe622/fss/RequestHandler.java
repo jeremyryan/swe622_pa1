@@ -123,7 +123,7 @@ public class RequestHandler extends Thread {
      *                 directory
      * @throws IOException
      */
-    private Response upload(Request request) throws IOException, ClassNotFoundException {
+    private Response upload(Request request) throws IOException {
         Response response;
         if (request.getValues().isEmpty()) {
             response = new Response("No destination directory or file name specified");
