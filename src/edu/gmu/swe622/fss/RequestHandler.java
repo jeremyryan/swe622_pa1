@@ -22,6 +22,7 @@ public class RequestHandler extends Thread {
     /**
      * Constructor.
      * @param sock  the socket used to communicate with the client.
+     * @param server  the server instance which initiated this thread
      * @throws IOException  if there is an error while communicating with the client
      */
     public RequestHandler(Socket sock, FSSServer server) throws IOException {
