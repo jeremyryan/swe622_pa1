@@ -2,13 +2,13 @@ File Sharing System Readme
 ===========================
 
 The File Sharing System program is implemented as an executable jar file. To start the program, run the java executable
-with the jar file as the argument to the -jar option, and include command line options according to the descriptions
+with the pa1.jar file as the argument to the -jar option, and include command line options according to the descriptions
 in the Usage section below:
-java -jar pa1.jar <program arguments>
+java -jar pa1.jar <arguments>
 
-If the program is run with input other than the commands listed below, it will print usage information and exit.
+If the program is run with incorrect input parameters, it will print usage information and exit.
 
-If either the client or server reports a problem with the requested action, then the process will print an error
+If either the client or server reports a problem with the requested action, the process will print an error
 message and exit with an exit status of 1.
 
 The PA1_SERVER environment variable must be set for the client to contact the server. It should have a value
@@ -29,22 +29,24 @@ copy will be overwritten. If the uploaded file should overwrite the existing fil
 then you will need to delete the existing file from the server and start the upload again.
 
 * client download </path/existing_filename/on/server> <path_on_client>
-Downloads a file from the server to the specified path. If the file already exists and the file size is less than
-the total file size reported by the server, then the file download will be resumed. If the file exists and the file
-size is equal to or greater than the total, the existing file will be overwritten. If the file exists but the
-download should not be resumed, then you will need to delete the existing file and initiate the download again.
+Downloads a file from the server to the specified path. If the file already exists at the specified path and the file
+size is less than the total file size reported by the server, then the file download will be resumed. If the file
+exists and the file size is equal to or greater than the total, the existing file will be overwritten. If the file
+exists but the download should not be resumed, then you will need to delete the existing file and start the download
+again.
 
 * client dir <path/existing_directory/on/server>
-Lists the contents (files and directories) of a directory. The directory must exist on the server.
+Lists the contents (files and directories) of a directory on the server. If the directory does not exist, an error will
+be reported.
 
 * client mkdir </path/new_directory/on/server>
-Creates a directory.
+Creates a directory on the server.
 
 * client rmdir <path/existing_directory/on/server>
-Removes a directory. The directory must already exist on the server and be empty.
+Removes a directory from the server. If the directory does not exist or is not empty, an error will be reported.
 
 * client rm </path/existing_filename/on/server>
-Deletes a file. The file must exist on the server.
+Deletes a file from the server. If the file does not exist, an error will be reported.
 
 * client shutdown
 Shuts down the server.
