@@ -35,6 +35,7 @@ public class FSSClient {
      * @param action  the action to carry out
      * @param args  the values required to carry out the action
      * @throws IOException  if there is an error while communicating with the server
+     * @throws Exception  if the request could not be completed successfully
      */
     public void doAction(Action action, String[] args) throws Exception {
         this.sock = new Socket(hostName, port);
@@ -74,34 +75,36 @@ public class FSSClient {
     /**
      * Sends a request to remove the file specified by fileName from the server.
      * @param fileName the name of the file to remove
+     * @throws Exception  if the request could not be completed successfully
      * @throws IOException  if there is an error while communicating with the server
      * @throws ClassNotFoundException  if the response from the server cannot be cast to a Response object
      */
-    private void rm(String fileName) throws IOException, ClassNotFoundException {
+    private void rm(String fileName) throws Exception {
         Request request = new Request(Action.RM);
         request.setValue(fileName);
         Response response = this.send(request);
         if (response.isValid()) {
             System.out.println("File removed");
         } else {
-            this.reportErrorAndExit("File could not be deleted: " + response.getErrorMessage());
+            throw new Exception("File could not be deleted: " + response.getErrorMessage());
         }
     }
 
     /**
      * Sends a request to create a directory named by dirName to the server.
      * @param dirName the name of the directory to create
+     * @throws Exception  if the request could not be completed successfully
      * @throws IOException  if there is an error while communicating with the server
      * @throws ClassNotFoundException  if the response from the server cannot be cast to a Response object
      */
-    private void mkdir(String dirName) throws IOException, ClassNotFoundException {
+    private void mkdir(String dirName) throws Exception {
         Request request = new Request(Action.MKDIR);
         request.setValue(dirName);
         Response response = this.send(request);
         if (response.isValid()) {
             System.out.println("Directory created");
         } else {
-            this.reportErrorAndExit("Directory could not be created: " + response.getErrorMessage());
+            throw new Exception("Directory could not be created: " + response.getErrorMessage());
         }
     }
 
@@ -109,10 +112,11 @@ public class FSSClient {
      * Sends a request to list the contents of a directory specified by dirName from the server.
      * The returned list of files and directories is then printed on stdout.
      * @param dirName the name of the directory on the server to list
+     * @throws Exception  if the request could not be completed successfully
      * @throws IOException  if there is an error while communicating with the server
      * @throws ClassNotFoundException  if the response from the server cannot be cast to a Response object
      */
-    private void dir(String dirName) throws IOException, ClassNotFoundException {
+    private void dir(String dirName) throws Exception {
         Request request = new Request(Action.DIR);
         request.setValue(dirName);
         Response response = this.send(request);
@@ -120,24 +124,25 @@ public class FSSClient {
             System.out.println("Directory contents:");
             ((List<String>) response.getValue()).stream().forEach(System.out::println);
         } else {
-            this.reportErrorAndExit("Directory could not be listed: " + response.getErrorMessage());
+            throw new Exception("Directory could not be listed: " + response.getErrorMessage());
         }
     }
 
     /**
      * Sends a request to remove a directory specified by dirName from the server.
      * @param dirName  the name of the directory to delete.
+     * @throws Exception  if the request could not be completed successfully
      * @throws IOException  if there is an error while communicating with the server
      * @throws ClassNotFoundException  if the response from the server cannot be cast to a Response object
      */
-    private void rmdir(String dirName) throws IOException, ClassNotFoundException {
+    private void rmdir(String dirName) throws Exception {
         Request request = new Request(Action.RMDIR);
         request.setValue(dirName);
         Response response = this.send(request);
         if (response.isValid()) {
             System.out.println("Directory removed");
         } else {
-            this.reportErrorAndExit("Directory could not be removed: " + response.getErrorMessage());
+            throw new Exception("Directory could not be removed: " + response.getErrorMessage());
         }
     }
 
@@ -147,14 +152,15 @@ public class FSSClient {
      * @param localFilePath path of the file to upload to the server
      * @param remoteDestination the name of the remote directory where the file should be created on
      *                          the server
+     * @throws Exception  if the request could not be completed successfully
      * @throws IOException  if there is an error while communicating with the server
      * @throws ClassNotFoundException  if the response from the server cannot be cast to a Response object
      */
     private void upload(String localFilePath, String remoteDestination)
-            throws IOException, ClassNotFoundException {
+            throws Exception {
         File file = new File(localFilePath);
         if (! file.exists()) {
-            this.reportErrorAndExit("File could not be found: " + localFilePath);
+            throw new Exception("File could not be found: " + localFilePath);
         }
 
         Request request = new Request(Action.UPLOAD);
@@ -193,11 +199,11 @@ public class FSSClient {
             if (response.isValid()) {
                 System.out.println("File uploaded");
             } else {
-                this.reportErrorAndExit("File could not be uploaded: " + response.getErrorMessage());
+                throw new Exception("File could not be uploaded: " + response.getErrorMessage());
             }
         } else {
-            this.reportErrorAndExit("File could not be uploaded: " + response.getErrorMessage());
-        }
+            throw new Exception("File could not be uploaded: " + response.getErrorMessage());
+       }
     }
 
     /**
@@ -205,14 +211,15 @@ public class FSSClient {
      * directory specified by destination.
      * @param remoteFile  the file to download from the server
      * @param destination the destination directory for the downloaded file
+     * @throws Exception  if the request could not be completed successfully
      * @throws IOException  if there is an error while communicating with the server
      * @throws ClassNotFoundException  if the response from the server cannot be cast to a Response object
      */
-    private void download(String remoteFile, String destination) throws IOException, ClassNotFoundException {
+    private void download(String remoteFile, String destination) throws Exception {
         Path destinationPath = FileSystems.getDefault().getPath(destination);
         String fileName = FileSystems.getDefault().getPath(remoteFile).getFileName().toString();
         if (! Files.exists(destinationPath)) {
-            this.reportErrorAndExit("Destination directory could not be found.");
+            throw new Exception("Destination directory could not be found.");
         }
         Path filePath = FileSystems.getDefault().getPath(destinationPath.toString(), fileName);
         File file = filePath.toFile();
@@ -223,7 +230,7 @@ public class FSSClient {
         Response response = this.send(request);
 
         if (! response.isValid()) {
-            this.reportErrorAndExit("File could not be downloaded: " + response.getErrorMessage());
+            throw new Exception("File could not be downloaded: " + response.getErrorMessage());
         } else {
             System.out.println("Downloading file...");
             float percentDone = 0f;
@@ -253,14 +260,15 @@ public class FSSClient {
 
     /**
      * Sends a shutdown request to the server.
+     * @throws Exception  if the request could not be completed successfully
      * @throws IOException  if there is an error while communicating with the server
      * @throws ClassNotFoundException  if the response from the server cannot be cast to a Response object
      */
-    private void shutdown() throws IOException, ClassNotFoundException {
+    private void shutdown() throws Exception {
         Request request = new Request(Action.SHUTDOWN);
         Response response = this.send(request);
         if (! response.isValid()) {
-            System.out.println("Server could not be shut down");
+            throw new Exception("Server could not be shut down");
         }
     }
 
@@ -277,14 +285,6 @@ public class FSSClient {
         return (Response) this.objectIn.readObject();
     }
 
-    /**
-     * Prints the message to stderr and exits with a return code of 1.
-     * @param message  the error message to print to stderr
-     */
-    private void reportErrorAndExit(String message) {
-        System.err.println(message);
-        System.exit(1);
-    }
 }
 
 
