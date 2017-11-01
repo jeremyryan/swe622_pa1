@@ -49,7 +49,7 @@ public enum Action {
      */
     public static Action findByName(String name) {
         for (Action action : Action.values()) {
-            if (name.equals(action.name)) {
+            if (name.equalsIgnoreCase(action.name)) {
                 return action;
             }
         }
