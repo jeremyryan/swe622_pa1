@@ -50,7 +50,7 @@ public class Main {
                 printUsage();
             }
 
-            FSSServer.newInstance().serve(port);
+            new FSSServer().serve(port);
 
         } else if ("client".equalsIgnoreCase(args[0])) {
             try {
@@ -85,7 +85,7 @@ public class Main {
                 new FSSClient(hostName, port).doAction(action, commandArgs);
             } catch (Exception exp) {
                 System.out.println("Action could not be completed: " + exp.getMessage());
-                exp.printStackTrace();
+                //exp.printStackTrace();
                 System.exit(1);
             }
 

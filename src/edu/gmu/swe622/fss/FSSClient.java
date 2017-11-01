@@ -217,12 +217,10 @@ public class FSSClient {
      */
     private void download(String remoteFile, String destination) throws Exception {
         Path destinationPath = FileSystems.getDefault().getPath(destination);
-        String fileName = FileSystems.getDefault().getPath(remoteFile).getFileName().toString();
-        if (! Files.exists(destinationPath)) {
+        if (! (destinationPath.getParent() == null || Files.exists(destinationPath.getParent()))) {
             throw new Exception("Destination directory could not be found.");
         }
-        Path filePath = FileSystems.getDefault().getPath(destinationPath.toString(), fileName);
-        File file = filePath.toFile();
+        File file = destinationPath.toFile();
         Request request = new Request(Action.DOWNLOAD);
         request.setValue(remoteFile);
         request.setFileSize(file.length());
@@ -236,6 +234,13 @@ public class FSSClient {
             float percentDone = 0f;
             float total = response.getFileSize();
             long downloadedBytes = file.length();
+            if (downloadedBytes >= total) {
+                // if the existing file is >= the remote file size, overwrite it
+                downloadedBytes = 0L;
+            }
+            if (! file.exists()) {
+                file.createNewFile();
+            }
 
             BufferedInputStream inStream = new BufferedInputStream(this.sock.getInputStream());
             try (RandomAccessFile randomAccessFile = new RandomAccessFile(file, "rw")) {

@@ -13,21 +13,13 @@ public class FSSServer {
 
     private ServerSocket serverSocket;
     private boolean running = true;
-    private static FSSServer instance;
-
-    public static FSSServer newInstance() {
-        if (instance == null) {
-            instance = new FSSServer();
-        }
-        return instance;
-    }
 
     /**
      * Constructor.
      */
-    private FSSServer() {
-        String homeDir = System.getProperty("user.home");
-        String path = homeDir + File.separator + "fss";
+    public FSSServer() {
+        String cwd = System.getProperty("user.dir");
+        String path = cwd + File.separator + "fss";
         File serverDir = new File(path);
         if (! serverDir.exists()) {
             serverDir.mkdir();

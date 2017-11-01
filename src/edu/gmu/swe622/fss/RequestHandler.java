@@ -22,7 +22,7 @@ public class RequestHandler extends Thread {
     /**
      * Constructor.
      * @param sock  the socket used to communicate with the client.
-     * @throws IOException
+     * @throws IOException  if there is an error while communicating with the client
      */
     public RequestHandler(Socket sock, FSSServer server) throws IOException {
         this.server = server;
@@ -52,7 +52,7 @@ public class RequestHandler extends Thread {
 
     /**
      * Reads the client request and dispatches it to the appropriate handler method for the action requested.
-     * @throws IOException
+     * @throws IOException  if there is an error while communicating with the client
      */
     private void handle() throws IOException {
         try {
@@ -95,7 +95,7 @@ public class RequestHandler extends Thread {
     /**
      * Returns a Path object representing the file named by fileName.
      * @param fileName  the name of the file
-     * @return  a Path object repesenting the file named by fileName
+     * @return  a Path object representing the file named by fileName
      */
     private Path getPath(String fileName) {
         return FileSystems.getDefault().getPath(System.getProperty("user.dir"), fileName);
@@ -138,7 +138,7 @@ public class RequestHandler extends Thread {
 
             Path destinationPath = this.getPath(destination);
 
-            if (Files.exists(destinationPath.getParent())) {
+            if (destinationPath.getParent() == null || Files.exists(destinationPath.getParent())) {
                 File uploadedFile = destinationPath.toFile();
                 Long fileSize = request.getFileSize();
                 response = new Response();
@@ -155,6 +155,9 @@ public class RequestHandler extends Thread {
                     long uploadedBytes = uploadedFile.length();
                     if (fileSize != null && uploadedBytes > 0 && uploadedBytes < fileSize) {
                         randomAccessFile.seek(uploadedBytes);
+                    } else {
+                        // if the existing file is >= to the size of the file being uploaded, overwrite it
+                        uploadedBytes = 0;
                     }
                     while (uploadedBytes++ < fileSize) {
                         int b = inStream.read();
@@ -278,6 +281,10 @@ public class RequestHandler extends Thread {
         return response;
     }
 
+    /**
+     * Calls the shutdown method on the server instance.
+     * @throws IOException  if there is an error while communicating with the client
+     */
     private void shutdown() throws IOException {
         Response response = new Response();
         this.writeResponse(response);
