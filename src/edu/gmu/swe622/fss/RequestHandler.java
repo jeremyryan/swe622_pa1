@@ -87,11 +87,7 @@ public class RequestHandler extends Thread {
             if (response != null) {
                 this.writeResponse(response);
             }
-        } catch (IOException exp) {
-            this.writeResponse(new Response(exp.getMessage()));
-            exp.printStackTrace();
-        } catch (ClassNotFoundException exp) {
-            this.writeResponse(new Response(exp.getMessage()));
+        } catch (Exception exp) {
             exp.printStackTrace();
         }
     }
@@ -168,7 +164,7 @@ public class RequestHandler extends Thread {
                 }
                 response = Response.SUCCESSFUL;
             } else {
-                response = new Response("File could not be uploaded");
+                response = Response.DIRECTORY_NOT_FOUND;
             }
         }
         return response;

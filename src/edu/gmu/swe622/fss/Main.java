@@ -69,7 +69,5 @@ public class Main {
             printUsage();
             System.exit(0);
         }
-
     }
-
 }

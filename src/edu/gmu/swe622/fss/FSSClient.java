@@ -163,15 +163,10 @@ public class FSSClient {
      */
     private void upload(String localFilePath, String remoteDestination)
             throws IOException, ClassNotFoundException {
-        System.out.println("localFilePath = " + localFilePath);
         File file = new File(localFilePath);
-        System.out.println("exists = " + file.exists());
-        return;
-        /*
         if (! file.exists()) {
             this.reportErrorAndExit("File could not be found: " + localFilePath);
         }
-        System.out.println("after?");
 
         Request request = new Request(Action.UPLOAD);
         request.setValue(remoteDestination + File.separator + file.getName());
@@ -214,7 +209,6 @@ public class FSSClient {
         } else {
             this.reportErrorAndExit("File could not be uploaded: " + response.getErrorMessage());
         }
-        */
     }
 
     /**
