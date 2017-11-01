@@ -246,7 +246,9 @@ public class RequestHandler extends Thread {
             response = new Response("No directory specified");
         } else {
             String dirName = (String) request.getValue();
+            System.out.println(" dirName = " + dirName);
             Path dirPath = this.getPath(dirName);
+            System.out.println(" dirPath = " + dirPath);
             if (Files.exists(dirPath)) {
                 List<String> fileNames = new ArrayList<>();
                 Files.list(dirPath).forEach((path) -> fileNames.add(path.getFileName().toString()));
