@@ -19,7 +19,7 @@ Usage:
 * server start <portnumber>
 Starts the FSS server listening on the specified port.
 When the server is started, it will set the filesystem root as the current working directory and create a folder
-named "fss", where uploaded files should be stored.
+named "fss" if it does not already exist, where uploaded files should be stored.
 
 * client upload <path_on_client> </path/filename/on/server>
 Uploads a file to the server. If the file already exists and the file length reported by the server is less than
@@ -35,16 +35,16 @@ size is equal to or greater than the total, the existing file will be overwritte
 download should not be resumed, then you will need to delete the existing file and initiate the download again.
 
 * client dir <path/existing_directory/on/server>
-Lists the contents (files and directories) of a directory.
+Lists the contents (files and directories) of a directory. The directory must exist on the server.
 
 * client mkdir </path/new_directory/on/server>
 Creates a directory.
 
 * client rmdir <path/existing_directory/on/server>
-Removes a directory.
+Removes a directory. The directory must already exist on the server and be empty.
 
 * client rm </path/existing_filename/on/server>
-Deletes a file.
+Deletes a file. The file must exist on the server.
 
 * client shutdown
 Shuts down the server.
