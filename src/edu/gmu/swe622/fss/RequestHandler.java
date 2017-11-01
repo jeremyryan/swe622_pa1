@@ -39,8 +39,6 @@ public class RequestHandler extends Thread {
     public void run() {
         try {
             this.handle();
-        } catch (IOException e) {
-            e.printStackTrace();
         } finally {
             try {
                 this.sock.close();
@@ -52,9 +50,8 @@ public class RequestHandler extends Thread {
 
     /**
      * Reads the client request and dispatches it to the appropriate handler method for the action requested.
-     * @throws IOException  if there is an error while communicating with the client
      */
-    private void handle() throws IOException {
+    private void handle() {
         try {
             Request request = (Request) this.objectIn.readObject();
             Response response = null;
@@ -246,10 +243,14 @@ public class RequestHandler extends Thread {
             String dirName = (String) request.getValue();
             Path dirPath = this.getPath(dirName);
             if (Files.exists(dirPath)) {
-                List<String> fileNames = new ArrayList<>();
-                Files.list(dirPath).forEach((path) -> fileNames.add(path.getFileName().toString()));
-                response = new Response();
-                response.setValue(fileNames);
+                if (Files.isDirectory(dirPath)) {
+                    List<String> fileNames = new ArrayList<>();
+                    Files.list(dirPath).forEach((path) -> fileNames.add(path.getFileName().toString()));
+                    response = new Response();
+                    response.setValue(fileNames);
+                } else {
+                    response = new Response("Specified file is not a directory: " + dirPath);
+                }
             } else {
                 response = Response.DIRECTORY_NOT_FOUND;
             }
@@ -270,8 +271,16 @@ public class RequestHandler extends Thread {
             String dirName = (String) request.getValue();
             Path dirPath = this.getPath(dirName);
             if (Files.exists(dirPath)) {
-                Files.delete(dirPath);
-                response = Response.SUCCESSFUL;
+                if (Files.isDirectory(dirPath)) {
+                    if (Files.list(dirPath).count() != 0) {
+                        response = new Response("The directory is not empty: " + dirPath);
+                    } else {
+                        Files.delete(dirPath);
+                        response = Response.SUCCESSFUL;
+                    }
+                } else {
+                    response = new Response("The specified file is not a directory: " + dirPath);
+                }
             } else {
                 response = Response.DIRECTORY_NOT_FOUND;
             }
