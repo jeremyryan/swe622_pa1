@@ -14,6 +14,9 @@ message and exit with an exit status of 1.
 The PA1_SERVER environment variable must be set for the client to contact the server. It should have a value
 containing the server host name and port separated by a colon: "hostname:port".
 
+Note that all file and directory paths sent in requests to the server must be absolute paths which start from the
+/fss directory. Relative paths and any path outside of /fss will be rejected by the server.
+
 Usage:
 
 * server start <portnumber>
