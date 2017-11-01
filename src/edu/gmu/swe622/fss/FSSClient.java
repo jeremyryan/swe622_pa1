@@ -24,21 +24,12 @@ public class FSSClient {
      * @throws IOException
      * @throws IllegalStateException  if the PA1_SERVER environment variable is not set.
      */
-    public FSSClient() {
-        String serverVar = System.getenv("PA1_SERVER");
-        if (serverVar == null) {
-            throw new IllegalStateException("environment variable PA1_SERVER must be set");
+    public FSSClient(String hostName, Integer port) {
+        if (hostName == null || port == null) {
+            throw new IllegalArgumentException("hostName and port must not be null");
         }
-        String[] serverVarItems = serverVar.split(":");
-        this.hostName = serverVarItems[0];
-        String portParam = serverVarItems[1];
-        if (hostName == null) {
-            throw new IllegalStateException("no hostname could be found; make sure PA1_SERVER is set: hostname:port");
-        }
-        if (portParam == null) {
-            throw new IllegalStateException("no port could be found; make sure PA1_SERVER is set: hostname:port");
-        }
-        this.port = Integer.valueOf(portParam);
+        this.hostName = hostName;
+        this.port = port;
     }
 
     /**

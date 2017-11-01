@@ -45,23 +45,40 @@ public class Main {
             FSSServer.newInstance().serve(port);
 
         } else if ("client".equalsIgnoreCase(args[0])) {
-            String actionName = args[1];
-            Action action = Action.findByName(actionName);
-
-            if (action == null || args.length-2 < action.getNumArgs()) {
-                printUsage();
-                System.exit(0);
-            }
-
-            String[] commandArgs = new String[action.getNumArgs()];
-            for (int i = 0; i < action.getNumArgs(); i++) {
-                commandArgs[i] = args[i+2];
-            }
             try {
-                new FSSClient().doAction(action, commandArgs);
+                String serverVar = System.getenv("PA1_SERVER");
+                if (serverVar == null) {
+                    throw new IllegalStateException("environment variable PA1_SERVER must be set");
+                }
+                String[] serverVarItems = serverVar.split(":");
+                if (serverVarItems.length != 2) {
+                    throw new IllegalStateException("no hostname could be found; make sure PA1_SERVER is set: hostname:port");
+                }
+                String hostName = serverVarItems[0];
+                String portParam = serverVarItems[1];
+                if (hostName == null) {
+
+                    throw new IllegalStateException("no hostname could be found; make sure PA1_SERVER is set: hostname:port");
+                }
+                if (portParam == null) {
+                    throw new IllegalStateException("no port could be found; make sure PA1_SERVER is set: hostname:port");
+                }
+                Integer port = Integer.valueOf(portParam);
+                String actionName = args[1];
+                Action action = Action.findByName(actionName);
+
+                if (action == null || args.length-2 < action.getNumArgs()) {
+                    printUsage();
+                    System.exit(0);
+                }
+
+                String[] commandArgs = new String[action.getNumArgs()];
+                for (int i = 0; i < action.getNumArgs(); i++) {
+                    commandArgs[i] = args[i+2];
+                }
+                new FSSClient(hostName, port).doAction(action, commandArgs);
             } catch (Exception exp) {
-                System.out.println("Action could not be completed " + exp.getMessage());
-                exp.printStackTrace();
+                System.out.println("Action could not be completed: " + exp.getMessage());
                 System.exit(1);
             }
 
