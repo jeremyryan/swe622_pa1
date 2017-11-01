@@ -27,7 +27,7 @@ public class Main {
 
     /**
      * Main method to start server and client from the command line.
-     * Verifies that the arguments passed are correct, in which case it starts hands control to the appropriate
+     * Verifies that the arguments passed are correct, in which case it hands control to the appropriate
      * class. Otherwise prints usage information and exists. If an exception is thrown while processing the request,
      * an error message is printed and the process exits with a return status of 1.
      * @param args  command line arguments
@@ -53,7 +53,7 @@ public class Main {
             try  {
                 new FSSServer().serve(port);
             } catch (Exception exp) {
-                System.out.println(exp.getMessage());
+                System.out.println("FSS server encountered an error");
                 exp.printStackTrace();
                 System.exit(1);
             }

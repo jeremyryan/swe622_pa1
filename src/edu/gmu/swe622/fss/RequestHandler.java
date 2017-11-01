@@ -101,6 +101,7 @@ public class RequestHandler extends Thread {
     /**
      * Removes a file from the server disk.
      * @param request the client request, which should contain the name of the file to remove
+     * @return a response indicating success if the file was removed, otherwise includes an error message
      * @throws IOException  if there is an error while communicating with the client
      */
     private Response rm(Request request) throws IOException {
@@ -124,6 +125,7 @@ public class RequestHandler extends Thread {
      * Writes the uploaded file to the server disk.
      * @param request  the client request, which should contain the file being uploaded and the destination
      *                 directory
+     * @return  a response indicating success if the file was uploaded, otherwise including an error message
      * @throws IOException  if there is an error while communicating with the client
      */
     private Response upload(Request request) throws IOException {
@@ -134,8 +136,9 @@ public class RequestHandler extends Thread {
             String destination = (String) request.getValue();
 
             Path destinationPath = this.getPath(destination);
-
-            if (destinationPath.getParent() == null || Files.exists(destinationPath.getParent())) {
+            if (destinationPath.startsWith(".")) {
+                response = new Response("Relative file paths are not supported");
+            } else if (destinationPath.getParent() == null || Files.exists(destinationPath.getParent())) {
                 File uploadedFile = destinationPath.toFile();
                 Long fileSize = request.getFileSize();
                 response = new Response();
@@ -172,6 +175,7 @@ public class RequestHandler extends Thread {
     /**
      * Downloads a file from the server.
      * @param request the client request, which should contain the file name
+     * @return a response indicating success if the file was downloaded, otherwise includes an error message
      * @throws IOException  if there is an error while communicating with the client
      */
     private Response download(Request request) throws IOException {
@@ -211,7 +215,8 @@ public class RequestHandler extends Thread {
     /**
      * Creates a directory on the server.
      * @param request  the client request, which should contain the name of the directory
-     * @throws IOException
+     * @return a response indicating success if the directory was created, otherwise includes an error message
+     * @throws IOException  if there is an error while communicating with the client
      */
     private Response mkdir(Request request) throws IOException {
         Response response;
@@ -233,6 +238,7 @@ public class RequestHandler extends Thread {
     /**
      * Lists files and directories in the directory specified by the client request.
      * @param request  request sent by client, which should contain the directory name
+     * @return a response including the items in the directory if successful, otherwise includes an error message
      * @throws IOException
      */
     private Response dir(Request request) throws IOException {
@@ -261,6 +267,7 @@ public class RequestHandler extends Thread {
     /**
      * Removes a directory based on a client request, or reports if the directory does not exist.
      * @param request  the request object sent by the client, which should contain the directory name
+     * @return a response indicating success if the directory was removed, otherwise includes an error message
      * @throws IOException  if there is an error while communicating with the client
      */
     private Response rmdir(Request request) throws IOException {
