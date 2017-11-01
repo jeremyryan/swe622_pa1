@@ -19,10 +19,8 @@ public class FSSClient {
     private ObjectOutput objectOut;
 
     /**
-     * Constructor. Requires that the PA1_SERVER environment variable be set and to have the format
-     * hostname:port, from which it gets the information to set up a connection to the FSS server.
-     * @throws IOException
-     * @throws IllegalStateException  if the PA1_SERVER environment variable is not set.
+     * Constructor.
+     * @throws IllegalArgumentException  if either hostName or port are null
      */
     public FSSClient(String hostName, Integer port) {
         if (hostName == null || port == null) {
@@ -34,9 +32,9 @@ public class FSSClient {
 
     /**
      * Dispatches user input to client request handlers.
-     * @param action
-     * @param args
-     * @throws IOException
+     * @param action  the action to carry out
+     * @param args  the values required to carry out the action
+     * @throws IOException  if there is an error while communicating with the server
      */
     public void doAction(Action action, String[] args) throws Exception {
         this.sock = new Socket(hostName, port);
@@ -76,8 +74,8 @@ public class FSSClient {
     /**
      * Sends a request to remove the file specified by fileName from the server.
      * @param fileName the name of the file to remove
-     * @throws IOException
-     * @throws ClassNotFoundException
+     * @throws IOException  if there is an error while communicating with the server
+     * @throws ClassNotFoundException  if the response from the server cannot be cast to a Response object
      */
     private void rm(String fileName) throws IOException, ClassNotFoundException {
         Request request = new Request(Action.RM);
@@ -93,8 +91,8 @@ public class FSSClient {
     /**
      * Sends a request to create a directory named by dirName to the server.
      * @param dirName the name of the directory to create
-     * @throws IOException
-     * @throws ClassNotFoundException
+     * @throws IOException  if there is an error while communicating with the server
+     * @throws ClassNotFoundException  if the response from the server cannot be cast to a Response object
      */
     private void mkdir(String dirName) throws IOException, ClassNotFoundException {
         Request request = new Request(Action.MKDIR);
@@ -111,8 +109,8 @@ public class FSSClient {
      * Sends a request to list the contents of a directory specified by dirName from the server.
      * The returned list of files and directories is then printed on stdout.
      * @param dirName the name of the directory on the server to list
-     * @throws IOException
-     * @throws ClassNotFoundException
+     * @throws IOException  if there is an error while communicating with the server
+     * @throws ClassNotFoundException  if the response from the server cannot be cast to a Response object
      */
     private void dir(String dirName) throws IOException, ClassNotFoundException {
         Request request = new Request(Action.DIR);
@@ -120,7 +118,7 @@ public class FSSClient {
         Response response = this.send(request);
         if (response.isValid()) {
             System.out.println("Directory contents:");
-            ((List<String>) response.getValue()).stream().forEach((s) -> System.out.println(s));
+            ((List<String>) response.getValue()).stream().forEach(System.out::println);
         } else {
             this.reportErrorAndExit("Directory could not be listed: " + response.getErrorMessage());
         }
@@ -129,8 +127,8 @@ public class FSSClient {
     /**
      * Sends a request to remove a directory specified by dirName from the server.
      * @param dirName  the name of the directory to delete.
-     * @throws IOException
-     * @throws ClassNotFoundException
+     * @throws IOException  if there is an error while communicating with the server
+     * @throws ClassNotFoundException  if the response from the server cannot be cast to a Response object
      */
     private void rmdir(String dirName) throws IOException, ClassNotFoundException {
         Request request = new Request(Action.RMDIR);
@@ -149,8 +147,8 @@ public class FSSClient {
      * @param localFilePath path of the file to upload to the server
      * @param remoteDestination the name of the remote directory where the file should be created on
      *                          the server
-     * @throws IOException
-     * @throws ClassNotFoundException
+     * @throws IOException  if there is an error while communicating with the server
+     * @throws ClassNotFoundException  if the response from the server cannot be cast to a Response object
      */
     private void upload(String localFilePath, String remoteDestination)
             throws IOException, ClassNotFoundException {
@@ -160,7 +158,7 @@ public class FSSClient {
         }
 
         Request request = new Request(Action.UPLOAD);
-        request.setValue(remoteDestination + File.separator + file.getName());
+        request.setValue(remoteDestination);
         request.setFileSize(file.length());
         Response response = this.send(request);
 
@@ -207,8 +205,8 @@ public class FSSClient {
      * directory specified by destination.
      * @param remoteFile  the file to download from the server
      * @param destination the destination directory for the downloaded file
-     * @throws IOException
-     * @throws ClassNotFoundException
+     * @throws IOException  if there is an error while communicating with the server
+     * @throws ClassNotFoundException  if the response from the server cannot be cast to a Response object
      */
     private void download(String remoteFile, String destination) throws IOException, ClassNotFoundException {
         Path destinationPath = FileSystems.getDefault().getPath(destination);
@@ -232,7 +230,6 @@ public class FSSClient {
             float total = response.getFileSize();
             long downloadedBytes = file.length();
 
-            System.out.println("downloadedBytes = " + downloadedBytes);
             BufferedInputStream inStream = new BufferedInputStream(this.sock.getInputStream());
             try (RandomAccessFile randomAccessFile = new RandomAccessFile(file, "rw")) {
                 if (downloadedBytes != 0 && downloadedBytes < total) {
@@ -254,6 +251,11 @@ public class FSSClient {
         }
     }
 
+    /**
+     * Sends a shutdown request to the server.
+     * @throws IOException  if there is an error while communicating with the server
+     * @throws ClassNotFoundException  if the response from the server cannot be cast to a Response object
+     */
     private void shutdown() throws IOException, ClassNotFoundException {
         Request request = new Request(Action.SHUTDOWN);
         Response response = this.send(request);
@@ -266,8 +268,8 @@ public class FSSClient {
      * Sends the request to the server and returns the server response.
      * @param request  the request to send to the server
      * @return  the server response
-     * @throws IOException
-     * @throws ClassNotFoundException
+     * @throws IOException  if there is an error while communicating with the server
+     * @throws ClassNotFoundException  if the response from the server cannot be cast to a Response object
      */
     private Response send(Request request) throws IOException, ClassNotFoundException {
         this.objectOut.writeObject(request);

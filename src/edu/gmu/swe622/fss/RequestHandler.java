@@ -104,7 +104,7 @@ public class RequestHandler extends Thread {
     /**
      * Removes a file from the server disk.
      * @param request the client request, which should contain the name of the file to remove
-     * @throws IOException
+     * @throws IOException  if there is an error while communicating with the client
      */
     private Response rm(Request request) throws IOException {
         Response response;
@@ -127,7 +127,7 @@ public class RequestHandler extends Thread {
      * Writes the uploaded file to the server disk.
      * @param request  the client request, which should contain the file being uploaded and the destination
      *                 directory
-     * @throws IOException
+     * @throws IOException  if there is an error while communicating with the client
      */
     private Response upload(Request request) throws IOException {
         Response response;
@@ -140,7 +140,6 @@ public class RequestHandler extends Thread {
 
             if (Files.exists(destinationPath.getParent())) {
                 File uploadedFile = destinationPath.toFile();
-                long uploadedBytes = uploadedFile.length();
                 Long fileSize = request.getFileSize();
                 response = new Response();
                 if (uploadedFile.exists()) {
@@ -153,11 +152,11 @@ public class RequestHandler extends Thread {
                 this.objectOut.writeObject(response);
                 BufferedInputStream inStream = new BufferedInputStream(this.sock.getInputStream());
                 try (RandomAccessFile randomAccessFile = new RandomAccessFile(uploadedFile, "rw")) {
-                    long bytesRead = uploadedFile.length();
+                    long uploadedBytes = uploadedFile.length();
                     if (fileSize != null && uploadedBytes > 0 && uploadedBytes < fileSize) {
                         randomAccessFile.seek(uploadedBytes);
                     }
-                    while (bytesRead++ < fileSize) {
+                    while (uploadedBytes++ < fileSize) {
                         int b = inStream.read();
                         randomAccessFile.write(b);
                     }
@@ -173,7 +172,7 @@ public class RequestHandler extends Thread {
     /**
      * Downloads a file from the server.
      * @param request the client request, which should contain the file name
-     * @throws IOException
+     * @throws IOException  if there is an error while communicating with the client
      */
     private Response download(Request request) throws IOException {
         Response response;
@@ -260,7 +259,7 @@ public class RequestHandler extends Thread {
     /**
      * Removes a directory based on a client request, or reports if the directory does not exist.
      * @param request  the request object sent by the client, which should contain the directory name
-     * @throws IOException
+     * @throws IOException  if there is an error while communicating with the client
      */
     private Response rmdir(Request request) throws IOException {
         Response response;
@@ -288,7 +287,7 @@ public class RequestHandler extends Thread {
     /**
      * Writes a response to the client.
      * @param response  the response to send
-     * @throws IOException
+     * @throws IOException  if there is an error while communicating with the client
      */
     private void writeResponse(Response response) throws IOException {
         this.objectOut.writeObject(response);

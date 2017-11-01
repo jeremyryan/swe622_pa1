@@ -3,10 +3,13 @@ package edu.gmu.swe622.fss;
 import java.util.stream.Stream;
 
 /**
- * Created by jmr on 10/31/17.
+ * Main executable class for starting server or client programs.
  */
 public class Main {
 
+    /**
+     * Prints the command line options that the program supports and exits with a return status of 0.
+     */
     private static void printUsage() {
         Stream.of(
                 "Usage:",
@@ -19,18 +22,24 @@ public class Main {
                 "client rm </path/existing_filename/on/server>",
                 "client shutdown"
         ).forEach(System.out::println);
+        System.exit(0);
     }
 
+    /**
+     * Main method to start server and client from the command line.
+     * Verifies that the arguments passed are correct, in which case it starts hands control to the appropriate
+     * class. Otherwise prints usage information and exists. If an exception is thrown while processing the request,
+     * an error message is printed and the process exits with a return status of 1.
+     * @param args  command line arguments
+     */
     public static void main(String[] args) {
         if (args.length <= 1) {
             printUsage();
-            System.exit(0);
         }
 
         if ("server".equalsIgnoreCase(args[0])) {
             if (! "start".equalsIgnoreCase(args[1]) || args.length < 3) {
                 printUsage();
-                System.exit(1);
             }
 
             String portParam = args[2];
@@ -39,7 +48,6 @@ public class Main {
                 port = Integer.valueOf(portParam);
             } catch (NumberFormatException exp) {
                 printUsage();
-                System.exit(1);
             }
 
             FSSServer.newInstance().serve(port);
@@ -52,12 +60,11 @@ public class Main {
                 }
                 String[] serverVarItems = serverVar.split(":");
                 if (serverVarItems.length != 2) {
-                    throw new IllegalStateException("no hostname could be found; make sure PA1_SERVER is set: hostname:port");
+                    throw new IllegalStateException("make sure PA1_SERVER environment variable is set: hostname:port");
                 }
                 String hostName = serverVarItems[0];
                 String portParam = serverVarItems[1];
                 if (hostName == null) {
-
                     throw new IllegalStateException("no hostname could be found; make sure PA1_SERVER is set: hostname:port");
                 }
                 if (portParam == null) {
@@ -69,7 +76,6 @@ public class Main {
 
                 if (action == null || args.length-2 < action.getNumArgs()) {
                     printUsage();
-                    System.exit(0);
                 }
 
                 String[] commandArgs = new String[action.getNumArgs()];
@@ -79,12 +85,12 @@ public class Main {
                 new FSSClient(hostName, port).doAction(action, commandArgs);
             } catch (Exception exp) {
                 System.out.println("Action could not be completed: " + exp.getMessage());
+                exp.printStackTrace();
                 System.exit(1);
             }
 
         } else {
             printUsage();
-            System.exit(0);
         }
     }
 }

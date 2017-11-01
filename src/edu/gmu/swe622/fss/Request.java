@@ -7,7 +7,15 @@ public class Request extends Message {
 
     private Action action;
 
+    /**
+     * Constructor.
+     * @param action  the action to be carried out by the client.
+     * @throws IllegalArgumentException  if action is null
+     */
     public Request(Action action) {
+        if (action == null) {
+            throw new IllegalArgumentException("action cannot be null");
+        }
         this.action = action;
     }
 
