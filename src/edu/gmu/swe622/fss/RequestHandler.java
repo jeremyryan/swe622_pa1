@@ -96,7 +96,23 @@ public class RequestHandler extends Thread {
      * @return  a Path object representing the file named by fileName
      */
     private Path getPath(String fileName) {
-        return FileSystems.getDefault().getPath(System.getProperty("user.dir"), fileName);
+        return FileSystems.getDefault().getPath(fileName);
+    }
+
+    /**
+     * Verifies that the path is not relative and begins with the /fss directory. Returns a response to be sent
+     * back to the client with an appropriate error message if the path is not valid.
+     * @param path  the filesystem path to validate
+     * @return  a response with an error message if not valid, otherwise null
+     */
+    private Response validatePath(Path path) {
+        Response response = null;
+        if (path.startsWith(".") || path.startsWith("..")) {
+            response = new Response("Relative file paths are not supported");
+        } else if (! path.startsWith("/fss")) {
+            response = new Response("File and directory paths must start with the /fss directory");
+        }
+        return response;
     }
 
     /**
@@ -112,11 +128,14 @@ public class RequestHandler extends Thread {
         } else {
             String fileName = (String) request.getValue();
             Path filePath = this.getPath(fileName);
-            if (Files.exists(filePath)) {
-                Files.deleteIfExists(filePath);
-                response = Response.SUCCESSFUL;
-            } else {
-                response = Response.FILE_NOT_FOUND;
+            response = this.validatePath(filePath);
+            if (response == null) {
+                if (Files.exists(filePath)) {
+                    Files.deleteIfExists(filePath);
+                    response = Response.SUCCESSFUL;
+                } else {
+                    response = Response.FILE_NOT_FOUND;
+                }
             }
         }
         return response;
@@ -137,37 +156,40 @@ public class RequestHandler extends Thread {
             String destination = (String) request.getValue();
 
             Path destinationPath = this.getPath(destination);
-            if (destinationPath.startsWith(".")) {
-                response = new Response("Relative file paths are not supported");
-            } else if (destinationPath.getParent() == null || Files.exists(destinationPath.getParent())) {
-                File uploadedFile = destinationPath.toFile();
-                Long fileSize = request.getFileSize();
-                response = new Response();
-                if (uploadedFile.exists()) {
-                    response.setFileSize(uploadedFile.length());
-                } else {
-                    uploadedFile.createNewFile();
-                    response.setFileSize(0L);
-                }
-
-                this.objectOut.writeObject(response);
-                BufferedInputStream inStream = new BufferedInputStream(this.sock.getInputStream());
-                try (RandomAccessFile randomAccessFile = new RandomAccessFile(uploadedFile, "rw")) {
-                    long uploadedBytes = uploadedFile.length();
-                    if (fileSize != null && uploadedBytes > 0 && uploadedBytes < fileSize) {
-                        randomAccessFile.seek(uploadedBytes);
+            response = this.validatePath(destinationPath);
+            if (response == null) {
+                if (Files.isDirectory(destinationPath)) {
+                    response = new Response("A directory with that name already exists.");
+                } else if (destinationPath.getParent() == null || Files.exists(destinationPath.getParent())) {
+                    File uploadedFile = destinationPath.toFile();
+                    Long fileSize = request.getFileSize();
+                    response = new Response();
+                    if (uploadedFile.exists()) {
+                        response.setFileSize(uploadedFile.length());
                     } else {
-                        // if the existing file is >= to the size of the file being uploaded, overwrite it
-                        uploadedBytes = 0;
+                        uploadedFile.createNewFile();
+                        response.setFileSize(0L);
                     }
-                    while (uploadedBytes++ < fileSize) {
-                        int b = inStream.read();
-                        randomAccessFile.write(b);
+
+                    this.objectOut.writeObject(response);
+                    BufferedInputStream inStream = new BufferedInputStream(this.sock.getInputStream());
+                    try (RandomAccessFile randomAccessFile = new RandomAccessFile(uploadedFile, "rw")) {
+                        long uploadedBytes = uploadedFile.length();
+                        if (fileSize != null && uploadedBytes > 0 && uploadedBytes < fileSize) {
+                            randomAccessFile.seek(uploadedBytes);
+                        } else {
+                            // if the existing file is >= to the size of the file being uploaded, overwrite it
+                            uploadedBytes = 0;
+                        }
+                        while (uploadedBytes++ < fileSize) {
+                            int b = inStream.read();
+                            randomAccessFile.write(b);
+                        }
                     }
+                    response = Response.SUCCESSFUL;
+                } else {
+                    response = Response.DIRECTORY_NOT_FOUND;
                 }
-                response = Response.SUCCESSFUL;
-            } else {
-                response = Response.DIRECTORY_NOT_FOUND;
             }
         }
         return response;
@@ -187,27 +209,32 @@ public class RequestHandler extends Thread {
             String fileName = (String) request.getValue();
             Path filePath = this.getPath(fileName);
 
-            if (Files.exists(filePath)) {
-                File file = filePath.toFile();
-                long totalBytes = file.length();
-                response = new Response();
-                response.setFileSize(totalBytes);
-                Long bytesUploaded = request.getFileSize();
-                this.writeResponse(response);
-                BufferedOutputStream outStream = new BufferedOutputStream(this.sock.getOutputStream());
-                try (RandomAccessFile randomAccessFile = new RandomAccessFile(file, "rw")) {
-                    if (bytesUploaded != null && bytesUploaded > 0 && bytesUploaded < totalBytes) {
-                        randomAccessFile.seek(bytesUploaded);
+            response = this.validatePath(filePath);
+            if (response == null) {
+                if (! Files.exists(filePath)) {
+                    response = Response.FILE_NOT_FOUND;
+                } else if (Files.isDirectory(filePath)) {
+                    response = new Response("Directories cannot be downloaded");
+                } else {
+                    File file = filePath.toFile();
+                    long totalBytes = file.length();
+                    response = new Response();
+                    response.setFileSize(totalBytes);
+                    Long bytesUploaded = request.getFileSize();
+                    this.writeResponse(response);
+                    BufferedOutputStream outStream = new BufferedOutputStream(this.sock.getOutputStream());
+                    try (RandomAccessFile randomAccessFile = new RandomAccessFile(file, "rw")) {
+                        if (bytesUploaded != null && bytesUploaded > 0 && bytesUploaded < totalBytes) {
+                            randomAccessFile.seek(bytesUploaded);
+                        }
+                        int b;
+                        while (-1 != (b = randomAccessFile.read())) {
+                            outStream.write(b);
+                        }
+                        outStream.flush();
                     }
-                    int b;
-                    while (-1 != (b = randomAccessFile.read())) {
-                        outStream.write(b);
-                    }
-                    outStream.flush();
+                    response = Response.SUCCESSFUL;
                 }
-                response = Response.SUCCESSFUL;
-            } else {
-                response = Response.FILE_NOT_FOUND;
             }
         }
         return response;
@@ -226,11 +253,14 @@ public class RequestHandler extends Thread {
         } else {
             String dirName = (String) request.getValue();
             Path newDirPath = this.getPath(dirName);
-            if (! Files.exists(newDirPath)) {
-                Files.createDirectory(newDirPath);
-                response = Response.SUCCESSFUL;
-            } else {
-                response = new Response("Directory already exists");
+            response = this.validatePath(newDirPath);
+            if (response == null) {
+                if (!Files.exists(newDirPath)) {
+                    Files.createDirectory(newDirPath);
+                    response = Response.SUCCESSFUL;
+                } else {
+                    response = new Response("Directory already exists");
+                }
             }
         }
         return response;
@@ -249,17 +279,20 @@ public class RequestHandler extends Thread {
         } else {
             String dirName = (String) request.getValue();
             Path dirPath = this.getPath(dirName);
-            if (Files.exists(dirPath)) {
-                if (Files.isDirectory(dirPath)) {
-                    List<String> fileNames = new ArrayList<>();
-                    Files.list(dirPath).forEach((path) -> fileNames.add(path.getFileName().toString()));
-                    response = new Response();
-                    response.setValue(fileNames);
+            response = this.validatePath(dirPath);
+            if (response == null) {
+                if (Files.exists(dirPath)) {
+                    if (Files.isDirectory(dirPath)) {
+                        List<String> fileNames = new ArrayList<>();
+                        Files.list(dirPath).forEach((path) -> fileNames.add(path.getFileName().toString()));
+                        response = new Response();
+                        response.setValue(fileNames);
+                    } else {
+                        response = new Response("Specified file is not a directory: " + dirPath);
+                    }
                 } else {
-                    response = new Response("Specified file is not a directory: " + dirPath);
+                    response = Response.DIRECTORY_NOT_FOUND;
                 }
-            } else {
-                response = Response.DIRECTORY_NOT_FOUND;
             }
         }
         return response;
@@ -278,19 +311,22 @@ public class RequestHandler extends Thread {
         } else {
             String dirName = (String) request.getValue();
             Path dirPath = this.getPath(dirName);
-            if (Files.exists(dirPath)) {
-                if (Files.isDirectory(dirPath)) {
-                    if (Files.list(dirPath).count() != 0) {
-                        response = new Response("The directory is not empty: " + dirPath);
+            response = this.validatePath(dirPath);
+            if (response == null) {
+                if (Files.exists(dirPath)) {
+                    if (Files.isDirectory(dirPath)) {
+                        if (Files.list(dirPath).count() != 0) {
+                            response = new Response("The directory is not empty: " + dirPath);
+                        } else {
+                            Files.delete(dirPath);
+                            response = Response.SUCCESSFUL;
+                        }
                     } else {
-                        Files.delete(dirPath);
-                        response = Response.SUCCESSFUL;
+                        response = new Response("The specified file is not a directory: " + dirPath);
                     }
                 } else {
-                    response = new Response("The specified file is not a directory: " + dirPath);
+                    response = Response.DIRECTORY_NOT_FOUND;
                 }
-            } else {
-                response = Response.DIRECTORY_NOT_FOUND;
             }
         }
         return response;

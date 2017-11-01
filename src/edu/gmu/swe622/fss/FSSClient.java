@@ -158,9 +158,12 @@ public class FSSClient {
      */
     private void upload(String localFilePath, String remoteDestination)
             throws Exception {
+
         File file = new File(localFilePath);
         if (! file.exists()) {
             throw new Exception("File could not be found: " + localFilePath);
+        } else if (file.isDirectory()) {
+            throw new Exception("Directories cannot be uploaded: " + localFilePath);
         }
 
         Request request = new Request(Action.UPLOAD);
@@ -217,7 +220,9 @@ public class FSSClient {
      */
     private void download(String remoteFile, String destination) throws Exception {
         Path destinationPath = FileSystems.getDefault().getPath(destination);
-        if (! (destinationPath.getParent() == null || Files.exists(destinationPath.getParent()))) {
+        if (Files.isDirectory(destinationPath)) {
+            throw new Exception("A directory with that name already exists.");
+        } else if (! (destinationPath.getParent() == null || Files.exists(destinationPath.getParent()))) {
             throw new Exception("Destination directory could not be found.");
         }
         File file = destinationPath.toFile();
