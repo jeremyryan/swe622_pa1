@@ -12,6 +12,8 @@ import java.util.List;
  */
 public class FSSClient {
 
+    private String hostName;
+    private Integer port;
     private Socket sock;
     private ObjectInput objectIn;
     private ObjectOutput objectOut;
@@ -22,13 +24,13 @@ public class FSSClient {
      * @throws IOException
      * @throws IllegalStateException  if the PA1_SERVER environment variable is not set.
      */
-    public FSSClient() throws IOException {
+    public FSSClient() {
         String serverVar = System.getenv("PA1_SERVER");
         if (serverVar == null) {
             throw new IllegalStateException("environment variable PA1_SERVER must be set");
         }
         String[] serverVarItems = serverVar.split(":");
-        String hostName = serverVarItems[0];
+        this.hostName = serverVarItems[0];
         String portParam = serverVarItems[1];
         if (hostName == null) {
             throw new IllegalStateException("no hostname could be found; make sure PA1_SERVER is set: hostname:port");
@@ -36,10 +38,7 @@ public class FSSClient {
         if (portParam == null) {
             throw new IllegalStateException("no port could be found; make sure PA1_SERVER is set: hostname:port");
         }
-        Integer port = Integer.valueOf(portParam);
-        this.sock = new Socket(hostName, port);
-        this.objectIn = new ObjectInputStream(this.sock.getInputStream());
-        this.objectOut = new ObjectOutputStream(this.sock.getOutputStream());
+        this.port = Integer.valueOf(portParam);
     }
 
     /**
@@ -47,9 +46,11 @@ public class FSSClient {
      * @param action
      * @param args
      * @throws IOException
-     * @throws ClassNotFoundException
      */
-    public void doAction(Action action, String[] args) throws IOException, ClassNotFoundException {
+    public void doAction(Action action, String[] args) throws Exception {
+        this.sock = new Socket(hostName, port);
+        this.objectIn = new ObjectInputStream(this.sock.getInputStream());
+        this.objectOut = new ObjectOutputStream(this.sock.getOutputStream());
         try {
             switch (action) {
                 case RM:
@@ -76,14 +77,8 @@ public class FSSClient {
                 default:
                     break;
             }
-        } catch (IOException exp) {
-            System.out.println("Action could not be completed: " + exp.getMessage());
         } finally {
-            try {
-                this.sock.close();
-            } catch (IOException exp) {
-                exp.printStackTrace();
-            }
+            this.sock.close();
         }
     }
 
@@ -168,10 +163,15 @@ public class FSSClient {
      */
     private void upload(String localFilePath, String remoteDestination)
             throws IOException, ClassNotFoundException {
+        System.out.println("localFilePath = " + localFilePath);
         File file = new File(localFilePath);
+        System.out.println("exists = " + file.exists());
+        return;
+        /*
         if (! file.exists()) {
             this.reportErrorAndExit("File could not be found: " + localFilePath);
         }
+        System.out.println("after?");
 
         Request request = new Request(Action.UPLOAD);
         request.setValue(remoteDestination + File.separator + file.getName());
@@ -214,6 +214,7 @@ public class FSSClient {
         } else {
             this.reportErrorAndExit("File could not be uploaded: " + response.getErrorMessage());
         }
+        */
     }
 
     /**

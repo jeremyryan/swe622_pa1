@@ -60,7 +60,7 @@ public class Main {
             try {
                 new FSSClient().doAction(action, commandArgs);
             } catch (Exception exp) {
-                System.out.println("Could not start client");
+                System.out.println("Action could not be completed " + exp.getMessage());
                 exp.printStackTrace();
                 System.exit(1);
             }
