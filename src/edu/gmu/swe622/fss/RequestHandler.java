@@ -16,13 +16,17 @@ public class RequestHandler extends Thread {
 
     private ObjectInput objectIn;
     private ObjectOutput objectOut;
+    private Socket sock;
+    private FSSServer server;
 
     /**
      * Constructor.
      * @param sock  the socket used to communicate with the client.
      * @throws IOException
      */
-    public RequestHandler(Socket sock) throws IOException {
+    public RequestHandler(Socket sock, FSSServer server) throws IOException {
+        this.server = server;
+        this.sock = sock;
         this.objectOut = new ObjectOutputStream(sock.getOutputStream());
         this.objectOut.flush();
         this.objectIn = new ObjectInputStream(sock.getInputStream());
@@ -39,8 +43,7 @@ public class RequestHandler extends Thread {
             e.printStackTrace();
         } finally {
             try {
-                this.objectIn.close();
-                this.objectOut.close();
+                this.sock.close();
             } catch (IOException exp) {
                 exp.printStackTrace();
             }
@@ -54,7 +57,7 @@ public class RequestHandler extends Thread {
     private void handle() throws IOException {
         try {
             Request request = (Request) this.objectIn.readObject();
-            Response response;
+            Response response = null;
             switch (request.getAction()) {
                 case RM:
                     response = this.rm(request);
@@ -74,15 +77,22 @@ public class RequestHandler extends Thread {
                 case DOWNLOAD:
                     response = this.download(request);
                     break;
+                case SHUTDOWN:
+                    this.shutdown();
+                    break;
                 default:
                     response = new Response("Invalid request");
                     break;
             }
-            this.writeResponse(response);
+            if (response != null) {
+                this.writeResponse(response);
+            }
         } catch (IOException exp) {
-            this.writeResponse(new Response("Action could not be completed: " + exp.getMessage()));
+            this.writeResponse(new Response(exp.getMessage()));
+            exp.printStackTrace();
         } catch (ClassNotFoundException exp) {
-            this.writeResponse(new Response("Action could not be completed: " + exp.getMessage()));
+            this.writeResponse(new Response(exp.getMessage()));
+            exp.printStackTrace();
         }
     }
 
@@ -102,10 +112,10 @@ public class RequestHandler extends Thread {
      */
     private Response rm(Request request) throws IOException {
         Response response;
-        if (request.getValues().isEmpty()) {
+        if (request.getValue() == null) {
             response = new Response("File name not specified");
         } else {
-            String fileName = request.getValues().get(0);
+            String fileName = (String) request.getValue();
             Path filePath = this.getPath(fileName);
             if (Files.exists(filePath)) {
                 Files.deleteIfExists(filePath);
@@ -125,25 +135,37 @@ public class RequestHandler extends Thread {
      */
     private Response upload(Request request) throws IOException {
         Response response;
-        if (request.getValues().isEmpty()) {
+        if (request.getValue() == null) {
             response = new Response("No destination directory or file name specified");
-        } else if (request.getFile() == null) {
-            response = new Response("No file uploaded");
         } else {
-            String destination = request.getValues().get(0);
-            String fileName = request.getValues().get(1);
-            //String size = request.getArguments().get(2);
-            //long fileSize = Long.valueOf(size);
+            String destination = (String) request.getValue();
 
             Path destinationPath = this.getPath(destination);
-            File destinationDir = destinationPath.toFile();
 
-            if (Files.exists(destinationPath)) {
-                File file = FileSystems.getDefault().getPath(destinationDir.getAbsolutePath(), fileName).toFile();
-                BufferedOutputStream outStream = new BufferedOutputStream(new FileOutputStream(file));
-                File uploadedFile = request.getFile();
-                Utility.write(new BufferedInputStream(new FileInputStream(uploadedFile)), outStream);
-                outStream.close();
+            if (Files.exists(destinationPath.getParent())) {
+                File uploadedFile = destinationPath.toFile();
+                long uploadedBytes = uploadedFile.length();
+                Long fileSize = request.getFileSize();
+                response = new Response();
+                if (uploadedFile.exists()) {
+                    response.setFileSize(uploadedFile.length());
+                } else {
+                    uploadedFile.createNewFile();
+                    response.setFileSize(0L);
+                }
+
+                this.objectOut.writeObject(response);
+                BufferedInputStream inStream = new BufferedInputStream(this.sock.getInputStream());
+                try (RandomAccessFile randomAccessFile = new RandomAccessFile(uploadedFile, "rw")) {
+                    long bytesRead = uploadedFile.length();
+                    if (fileSize != null && uploadedBytes > 0 && uploadedBytes < fileSize) {
+                        randomAccessFile.seek(uploadedBytes);
+                    }
+                    while (bytesRead++ < fileSize) {
+                        int b = inStream.read();
+                        randomAccessFile.write(b);
+                    }
+                }
                 response = Response.SUCCESSFUL;
             } else {
                 response = new Response("File could not be uploaded");
@@ -159,15 +181,31 @@ public class RequestHandler extends Thread {
      */
     private Response download(Request request) throws IOException {
         Response response;
-        if (request.getValues().isEmpty()) {
+        if (request.getValue() == null) {
             response = new Response("No file name specified");
         } else {
-            String fileName = request.getValues().get(0);
+            String fileName = (String) request.getValue();
             Path filePath = this.getPath(fileName);
 
             if (Files.exists(filePath)) {
                 File file = filePath.toFile();
-                response = new Response(file);
+                long totalBytes = file.length();
+                response = new Response();
+                response.setFileSize(totalBytes);
+                Long bytesUploaded = request.getFileSize();
+                this.writeResponse(response);
+                BufferedOutputStream outStream = new BufferedOutputStream(this.sock.getOutputStream());
+                try (RandomAccessFile randomAccessFile = new RandomAccessFile(file, "rw")) {
+                    if (bytesUploaded != null && bytesUploaded > 0 && bytesUploaded < totalBytes) {
+                        randomAccessFile.seek(bytesUploaded);
+                    }
+                    int b;
+                    while (-1 != (b = randomAccessFile.read())) {
+                        outStream.write(b);
+                    }
+                    outStream.flush();
+                }
+                response = Response.SUCCESSFUL;
             } else {
                 response = Response.FILE_NOT_FOUND;
             }
@@ -182,10 +220,10 @@ public class RequestHandler extends Thread {
      */
     private Response mkdir(Request request) throws IOException {
         Response response;
-        if (request.getValues().isEmpty()) {
+        if (request.getValue() == null) {
             response = new Response("No directory specified");
         } else {
-            String dirName = request.getValues().get(0);
+            String dirName = (String) request.getValue();
             Path newDirPath = this.getPath(dirName);
             if (! Files.exists(newDirPath)) {
                 Files.createDirectory(newDirPath);
@@ -204,15 +242,16 @@ public class RequestHandler extends Thread {
      */
     private Response dir(Request request) throws IOException {
         Response response;
-        if (request.getValues().isEmpty()) {
+        if (request.getValue() == null) {
             response = new Response("No directory specified");
         } else {
-            String dirName = request.getValues().get(0);
+            String dirName = (String) request.getValue();
             Path dirPath = this.getPath(dirName);
             if (Files.exists(dirPath)) {
                 List<String> fileNames = new ArrayList<>();
                 Files.list(dirPath).forEach((path) -> fileNames.add(path.getFileName().toString()));
-                response = new Response(fileNames);
+                response = new Response();
+                response.setValue(fileNames);
             } else {
                 response = Response.DIRECTORY_NOT_FOUND;
             }
@@ -227,10 +266,10 @@ public class RequestHandler extends Thread {
      */
     private Response rmdir(Request request) throws IOException {
         Response response;
-        if (request.getValues().isEmpty()) {
+        if (request.getValue() == null) {
             response = new Response("Directory name not specified");
         } else {
-            String dirName = request.getValues().get(0);
+            String dirName = (String) request.getValue();
             Path dirPath = this.getPath(dirName);
             if (Files.exists(dirPath)) {
                 Files.delete(dirPath);
@@ -240,6 +279,12 @@ public class RequestHandler extends Thread {
             }
         }
         return response;
+    }
+
+    private void shutdown() throws IOException {
+        Response response = new Response();
+        this.writeResponse(response);
+        this.server.shutdown();
     }
 
     /**

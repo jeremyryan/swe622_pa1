@@ -4,6 +4,7 @@ package edu.gmu.swe622.fss;
  * Actions representing functionality implemented by the File Sharing System.
  */
 public enum Action {
+    SHUTDOWN("shutdown", 0),
     RM("rm", 1),
     RMDIR("rmdir", 1),
     UPLOAD("upload", 2),

@@ -2,7 +2,10 @@ package edu.gmu.swe622.fss;
 
 import java.io.*;
 import java.net.Socket;
-import java.nio.file.*;
+import java.nio.file.FileSystems;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.util.List;
 
 /**
  * Implements the client for the File Sharing System.
@@ -67,6 +70,9 @@ public class FSSClient {
                 case DOWNLOAD:
                     this.download(args[0], args[1]);
                     break;
+                case SHUTDOWN:
+                    this.shutdown();
+                    break;
                 default:
                     break;
             }
@@ -74,8 +80,7 @@ public class FSSClient {
             System.out.println("Action could not be completed: " + exp.getMessage());
         } finally {
             try {
-                this.objectIn.close();
-                this.objectOut.close();
+                this.sock.close();
             } catch (IOException exp) {
                 exp.printStackTrace();
             }
@@ -89,9 +94,12 @@ public class FSSClient {
      * @throws ClassNotFoundException
      */
     private void rm(String fileName) throws IOException, ClassNotFoundException {
-        Request request = new Request(Action.RM, fileName);
+        Request request = new Request(Action.RM);
+        request.setValue(fileName);
         Response response = this.send(request);
-        if (! response.isValid()) {
+        if (response.isValid()) {
+            System.out.println("File removed");
+        } else {
             this.reportErrorAndExit("File could not be deleted: " + response.getErrorMessage());
         }
     }
@@ -103,9 +111,12 @@ public class FSSClient {
      * @throws ClassNotFoundException
      */
     private void mkdir(String dirName) throws IOException, ClassNotFoundException {
-        Request request = new Request(Action.MKDIR, dirName);
+        Request request = new Request(Action.MKDIR);
+        request.setValue(dirName);
         Response response = this.send(request);
-        if (! response.isValid()) {
+        if (response.isValid()) {
+            System.out.println("Directory created");
+        } else {
             this.reportErrorAndExit("Directory could not be created: " + response.getErrorMessage());
         }
     }
@@ -118,10 +129,12 @@ public class FSSClient {
      * @throws ClassNotFoundException
      */
     private void dir(String dirName) throws IOException, ClassNotFoundException {
-        Request request = new Request(Action.DIR, dirName);
+        Request request = new Request(Action.DIR);
+        request.setValue(dirName);
         Response response = this.send(request);
         if (response.isValid()) {
-            response.getValues().stream().forEach((s) -> System.out.println(s));
+            System.out.println("Directory contents:");
+            ((List<String>) response.getValue()).stream().forEach((s) -> System.out.println(s));
         } else {
             this.reportErrorAndExit("Directory could not be listed: " + response.getErrorMessage());
         }
@@ -134,9 +147,12 @@ public class FSSClient {
      * @throws ClassNotFoundException
      */
     private void rmdir(String dirName) throws IOException, ClassNotFoundException {
-        Request request = new Request(Action.RMDIR, dirName);
+        Request request = new Request(Action.RMDIR);
+        request.setValue(dirName);
         Response response = this.send(request);
-        if (! response.isValid()) {
+        if (response.isValid()) {
+            System.out.println("Directory removed");
+        } else {
             this.reportErrorAndExit("Directory could not be removed: " + response.getErrorMessage());
         }
     }
@@ -157,9 +173,45 @@ public class FSSClient {
             this.reportErrorAndExit("File could not be found: " + localFilePath);
         }
 
-        Request request = new Request(Action.UPLOAD, file, remoteDestination, file.getName(), file.length() + "");
+        Request request = new Request(Action.UPLOAD);
+        request.setValue(remoteDestination + File.separator + file.getName());
+        request.setFileSize(file.length());
         Response response = this.send(request);
-        if (! response.isValid()) {
+
+        if (response.isValid()) {
+            BufferedOutputStream outStream = new BufferedOutputStream(this.sock.getOutputStream());
+            try (RandomAccessFile randomAccessFile = new RandomAccessFile(file, "r")) {
+                Long uploadedBytes = response.getFileSize();
+                float total = file.length();
+                System.out.println("Uploading file...");
+                float percentDone = 0f;
+                if (uploadedBytes != null && uploadedBytes > 0 && uploadedBytes < total) {
+                    randomAccessFile.seek(uploadedBytes-1);
+                    percentDone = (uploadedBytes / total) * 100;
+                    System.out.println(String.format("Skipping %d%% of upload", (int) percentDone));
+                }
+                long bytesWritten = 0;
+                int b;
+                while (-1 != (b = randomAccessFile.read())) {
+                    outStream.write(b);
+                    bytesWritten++;
+                    int percent = (int) ((bytesWritten / total) * 100);
+                    if (percent > percentDone) {
+                        outStream.flush();
+                        System.out.println(percent + "% uploaded");
+                        percentDone += 10;
+                    }
+                }
+                outStream.flush();
+            }
+
+            response = (Response) this.objectIn.readObject();
+            if (response.isValid()) {
+                System.out.println("File uploaded");
+            } else {
+                this.reportErrorAndExit("File could not be uploaded: " + response.getErrorMessage());
+            }
+        } else {
             this.reportErrorAndExit("File could not be uploaded: " + response.getErrorMessage());
         }
     }
@@ -174,25 +226,53 @@ public class FSSClient {
      */
     private void download(String remoteFile, String destination) throws IOException, ClassNotFoundException {
         Path destinationPath = FileSystems.getDefault().getPath(destination);
-        File destinationDir = new File(destination);
+        String fileName = FileSystems.getDefault().getPath(remoteFile).getFileName().toString();
         if (! Files.exists(destinationPath)) {
             this.reportErrorAndExit("Destination directory could not be found.");
         }
+        Path filePath = FileSystems.getDefault().getPath(destinationPath.toString(), fileName);
+        File file = filePath.toFile();
+        Request request = new Request(Action.DOWNLOAD);
+        request.setValue(remoteFile);
+        request.setFileSize(file.length());
 
-        Request request = new Request(Action.DOWNLOAD, remoteFile);
-        this.objectOut.writeObject(request);
-        this.objectOut.flush();
+        Response response = this.send(request);
 
-        Response response = (Response) this.objectIn.readObject();
         if (! response.isValid()) {
             this.reportErrorAndExit("File could not be downloaded: " + response.getErrorMessage());
         } else {
-            File downloadedFile = response.getFile();
-            System.out.println("file length = " + downloadedFile.length());
-            Path filePath = FileSystems.getDefault().getPath(destinationPath.toString(), downloadedFile.getName());
-            BufferedOutputStream fileOut = new BufferedOutputStream(new FileOutputStream(filePath.toFile()));
-            Utility.write(new BufferedInputStream(new FileInputStream(downloadedFile)), fileOut);
-            fileOut.close();
+            System.out.println("Downloading file...");
+            float percentDone = 0f;
+            float total = response.getFileSize();
+            long downloadedBytes = file.length();
+
+            System.out.println("downloadedBytes = " + downloadedBytes);
+            BufferedInputStream inStream = new BufferedInputStream(this.sock.getInputStream());
+            try (RandomAccessFile randomAccessFile = new RandomAccessFile(file, "rw")) {
+                if (downloadedBytes != 0 && downloadedBytes < total) {
+                    randomAccessFile.seek(downloadedBytes);
+                    percentDone = (downloadedBytes / total) * 100;
+                    System.out.println(String.format("Skipping %d%% of download", (int) percentDone));
+                }
+                while (downloadedBytes < total) {
+                    randomAccessFile.write(inStream.read());
+                    downloadedBytes++;
+                    int percent = (int) ((downloadedBytes / total) * 100);
+                    if (percent > percentDone) {
+                        System.out.println(percent + "% downloaded");
+                        percentDone += 10;
+                    }
+                }
+            }
+            System.out.println("File downloaded");
+        }
+    }
+
+    private void shutdown() throws IOException, ClassNotFoundException {
+        Request request = new Request(Action.SHUTDOWN);
+        Response response = this.send(request);
+        if (! response.isValid()) {
+            System.out.println("Server could not be shut down");
         }
     }
 
