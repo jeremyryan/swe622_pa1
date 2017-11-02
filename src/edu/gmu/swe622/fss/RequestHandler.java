@@ -96,21 +96,24 @@ public class RequestHandler extends Thread {
      * @return  a Path object representing the file named by fileName
      */
     private Path getPath(String fileName) {
-        return FileSystems.getDefault().getPath(fileName);
+        return FileSystems.getDefault().getPath(System.getProperty("user.dir"), fileName);
     }
 
     /**
-     * Verifies that the path is not relative and begins with the /fss directory. Returns a response to be sent
+     * Verifies that the path sent by the client is not a relative path. Returns a response to be sent
      * back to the client with an appropriate error message if the path is not valid.
      * @param path  the filesystem path to validate
      * @return  a response with an error message if not valid, otherwise null
      */
     private Response validatePath(Path path) {
         Response response = null;
-        if (path.startsWith(".") || path.startsWith("..")) {
+        Path fileName = path.getFileName();
+        Path parent = path.getName(path.getNameCount()-2);
+        if (fileName.startsWith(".") || fileName.startsWith("..")) {
             response = new Response("Relative file paths are not supported");
-        } else if (! path.startsWith("/fss")) {
-            response = new Response("File and directory paths must start with the /fss directory");
+        }
+        if (parent.startsWith(".") || parent.startsWith("..")) {
+            response = new Response("Relative file paths are not supported");
         }
         return response;
     }

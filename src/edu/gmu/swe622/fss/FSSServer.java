@@ -4,40 +4,18 @@ import java.io.IOException;
 import java.net.ServerSocket;
 import java.net.Socket;
 import java.net.SocketException;
-import java.nio.file.FileSystems;
-import java.nio.file.Files;
-import java.nio.file.Path;
 
 /**
  * Server for the File Sharing System.
  */
 public class FSSServer {
 
-    /**
-     * Directory which uploaded files are stored in.
-     */
-    public static final String SERVER_DIR = "fss";
-
     private ServerSocket serverSocket;
     private boolean running = true;
 
     /**
-     * Constructor. Sets the working directory to the filesystem root and creates the folder which holds uploaded
-     * files.
-     * @throws  if the server directory could not be created
-     */
-    public FSSServer() throws Exception {
-        Path root = FileSystems.getDefault().getRootDirectories().iterator().next();
-        System.setProperty("user.dir", root.toString());
-        Path serverDir = FileSystems.getDefault().getPath(root.toString(), SERVER_DIR);
-        if (! Files.exists(serverDir)) {
-            Files.createDirectory(serverDir);
-        }
-    }
-
-    /**
      * Starts the server listening on port.
-     * @throws IOException
+     * @param port the port that the server will listen on
      */
     public void serve(Integer port) {
         try {
@@ -62,6 +40,10 @@ public class FSSServer {
         }
     }
 
+    /**
+     * Shuts down the server. Called by RequestHandler instances when a client sends a shutdown command.
+     * @throws IOException
+     */
     public void shutdown() throws IOException {
         System.out.println("Server shutting down");
         this.running = false;
