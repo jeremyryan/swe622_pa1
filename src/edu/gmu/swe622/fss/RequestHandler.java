@@ -5,6 +5,7 @@ import java.net.Socket;
 import java.nio.file.FileSystems;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -107,13 +108,14 @@ public class RequestHandler extends Thread {
      */
     private Response validatePath(Path path) {
         Response response = null;
-        Path fileName = path.getFileName();
-        Path parent = path.getName(path.getNameCount()-2);
-        if (fileName.startsWith(".") || fileName.startsWith("..")) {
-            response = new Response("Relative file paths are not supported");
-        }
-        if (parent.startsWith(".") || parent.startsWith("..")) {
-            response = new Response("Relative file paths are not supported");
+        Path parent = Paths.get("..");
+        Path cwd = Paths.get(".");
+        for (int i = 0, count = path.getNameCount(); i < count; i++) {
+            Path fileName = path.getName(i);
+            if (fileName.equals(cwd) || fileName.equals(parent)) {
+                response = new Response("Relative file paths are not supported");
+                break;
+            }
         }
         return response;
     }
